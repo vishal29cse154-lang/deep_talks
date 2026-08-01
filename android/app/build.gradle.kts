@@ -10,7 +10,7 @@ android {
         resources.excludes.add("META-INF/*.version")
     }
     namespace = "com.example.deep_talks"
-    compileSdk = 36
+    compileSdk = 35
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -18,16 +18,17 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
+    }
+
     defaultConfig {
         applicationId = "com.example.deep_talks"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        lint {
-    checkReleaseBuilds = false
-    abortOnError = false
-}
     }
 
     buildTypes {
