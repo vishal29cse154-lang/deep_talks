@@ -108,7 +108,7 @@ class ChatBubble extends StatelessWidget {
                   width: 260,
                   height: 200,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => Container(
+                  errorBuilder: (context, error, stackTrace) => Container(
                     width: 260,
                     height: 100,
                     color: AppTheme.surfaceDark,

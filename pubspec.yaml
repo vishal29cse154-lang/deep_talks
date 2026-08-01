@@ -48,3 +48,6 @@ flutter_icons:
   image_path: "icon.png"
   min_sdk_android: 21
 
+flutter:
+  uses-material-design: true
+
