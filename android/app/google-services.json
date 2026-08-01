@@ -1,0 +1,82 @@
+{
+  "project_info": {
+    "project_number": "132566369368",
+    "project_id": "together-space-d6htbb",
+    "storage_bucket": "together-space-d6htbb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:132566369368:android:a99efd3485b0a58cc5f62d",
+        "android_client_info": {
+          "package_name": "com.example.deep_talks"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "132566369368-og5dnktbcltj78q8i7cjuovab4uhig7t.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBomODdsZYEmRNWlz8gqr6F5f63VfH0lKQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "132566369368-og5dnktbcltj78q8i7cjuovab4uhig7t.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "132566369368-f1du6gu23gh4t4jtnesr19k1dcotetha.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.mycompany.deeptalks"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:132566369368:android:0870010a5bed44ebc5f62d",
+        "android_client_info": {
+          "package_name": "com.mycompany.deeptalks"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "132566369368-og5dnktbcltj78q8i7cjuovab4uhig7t.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBomODdsZYEmRNWlz8gqr6F5f63VfH0lKQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "132566369368-og5dnktbcltj78q8i7cjuovab4uhig7t.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "132566369368-f1du6gu23gh4t4jtnesr19k1dcotetha.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.mycompany.deeptalks"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
