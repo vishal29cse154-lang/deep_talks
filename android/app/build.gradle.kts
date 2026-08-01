@@ -6,9 +6,6 @@ plugins {
 }
 
 android {
-    packaging {
-        resources.excludes.add("META-INF/*.version")
-    }
     namespace = "com.example.deep_talks"
     compileSdk = 35
     ndkVersion = flutter.ndkVersion
@@ -16,6 +13,10 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
     lint {
@@ -36,10 +37,6 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
-}
-
-kotlin {
-    jvmToolchain(17)
 }
 
 flutter {
