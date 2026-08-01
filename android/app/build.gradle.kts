@@ -1,10 +1,13 @@
 plugins {
     id("com.android.application")
-    id("com.google.gms.google-services")
+    id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
 }
 
 android {
+    packaging {
+        resources.excludes.add("META-INF/*.version")
+    }
     namespace = "com.example.deep_talks"
     compileSdk = 36
     ndkVersion = flutter.ndkVersion
