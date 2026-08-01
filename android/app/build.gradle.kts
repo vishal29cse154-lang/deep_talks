@@ -21,10 +21,9 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         lint {
-        isCheckReleaseBuilds = false
-        disable.add("InvalidPackage")
-        abortOnError = false
-    }
+    checkReleaseBuilds = false
+    abortOnError = false
+}
     }
 
     buildTypes {
