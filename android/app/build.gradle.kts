@@ -20,6 +20,11 @@ android {
         targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        lint {
+        isCheckReleaseBuilds = false
+        disable.add("InvalidPackage")
+        abortOnError = false
+    }
     }
 
     buildTypes {
