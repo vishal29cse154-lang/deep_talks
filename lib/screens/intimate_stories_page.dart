@@ -4,7 +4,7 @@ import 'package:uuid/uuid.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
-import 'package:flutter_windowmanager/flutter_windowmanager.dart';
+import 'package:screen_protector/screen_protector.dart';
 
 import '../models/story_model.dart';
 import '../models/user_model.dart';
@@ -162,7 +162,7 @@ class _StoryPlayerWidgetState extends State<StoryPlayerWidget> {
   Future<void> _secureScreen() async {
     if (!kIsWeb) {
       if (Theme.of(context).platform == TargetPlatform.android) {
-        await FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_SECURE);
+        await ScreenProtector.preventScreenshotOn();
       }
     }
   }
@@ -170,7 +170,7 @@ class _StoryPlayerWidgetState extends State<StoryPlayerWidget> {
   Future<void> _unsecureScreen() async {
     if (!kIsWeb) {
       if (Theme.of(context).platform == TargetPlatform.android) {
-        await FlutterWindowManager.clearFlags(FlutterWindowManager.FLAG_SECURE);
+        await ScreenProtector.preventScreenshotOff();
       }
     }
   }
