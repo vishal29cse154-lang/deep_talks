@@ -38,7 +38,7 @@ class _ViewOnceScreenState extends State<ViewOnceScreen> {
   Future<void> _secureScreen() async {
     if (!kIsWeb) {
       if (Theme.of(context).platform == TargetPlatform.android) {
-        await FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_SECURE);
+        await ScreenProtector.preventScreenshotOn();
       }
     }
   }
@@ -46,7 +46,7 @@ class _ViewOnceScreenState extends State<ViewOnceScreen> {
   Future<void> _unsecureScreen() async {
     if (!kIsWeb) {
       if (Theme.of(context).platform == TargetPlatform.android) {
-        await FlutterWindowManager.clearFlags(FlutterWindowManager.FLAG_SECURE);
+        await ScreenProtector.preventScreenshotOff();
       }
     }
   }
