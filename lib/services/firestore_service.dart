@@ -5,6 +5,7 @@ import '../models/user_model.dart';
 import '../models/couple_model.dart';
 import '../models/message_model.dart';
 import '../models/memory_model.dart';
+import '../models/story_model.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -54,6 +55,11 @@ class FirestoreService {
   /// Update user's mood
   Future<void> updateUserMood(String uid, String mood) async {
     await _db.collection('users').doc(uid).update({'mood': mood});
+  }
+
+  /// Update user's mood note
+  Future<void> updateUserMoodNote(String uid, String moodNote) async {
+    await _db.collection('users').doc(uid).update({'moodNote': moodNote});
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -126,6 +132,17 @@ class FirestoreService {
     if (authUser != null && authUser.uid == uid) {
       await authUser.updateDisplayName(newName);
     }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  LOVE PULSE
+  // ═══════════════════════════════════════════════════════════════
+
+  /// Send a Love Pulse to a partner
+  Future<void> sendLovePulse(String partnerId) async {
+    await _db.collection('users').doc(partnerId).update({
+      'lastPulseAt': FieldValue.serverTimestamp(),
+    });
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -281,5 +298,49 @@ class FirestoreService {
         .collection('memories')
         .doc(memory.id)
         .set(memory.toMap());
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  INTIMATE STORIES
+  // ═══════════════════════════════════════════════════════════════
+
+  Stream<List<StoryModel>> intimateStoriesStream(String coupleId) {
+    return _db
+        .collection('couples')
+        .doc(coupleId)
+        .collection('intimate_stories')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((doc) => StoryModel.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+
+  Future<void> addIntimateStory(String coupleId, StoryModel story) async {
+    await _db
+        .collection('couples')
+        .doc(coupleId)
+        .collection('intimate_stories')
+        .doc(story.id)
+        .set(story.toMap());
+  }
+
+  Future<void> toggleStoryReaction(
+      String coupleId, String storyId, String uid, bool isLiked) async {
+    final ref = _db
+        .collection('couples')
+        .doc(coupleId)
+        .collection('intimate_stories')
+        .doc(storyId);
+
+    if (isLiked) {
+      await ref.update({
+        'likedBy': FieldValue.arrayUnion([uid])
+      });
+    } else {
+      await ref.update({
+        'likedBy': FieldValue.arrayRemove([uid])
+      });
+    }
   }
 }

@@ -1,4 +1,6 @@
 import 'dart:developer';
+import 'dart:typed_data';
+import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -18,6 +20,7 @@ class FCMService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   Future<void> initialize() async {
+    // ─── Native App Notifications (Web lacks full native setup) ───
     if (kIsWeb) {
       log('FCM not fully supported on Web yet, skipping init for testing.');
       return;
@@ -89,7 +92,61 @@ class FCMService {
       _fcm.onTokenRefresh.listen((token) {
         _updateTokenInDb(token);
       });
+
+      // ─── Setup Firestore listener for "Love Pulse" ───
+      _listenForLovePulses();
     }
+  }
+
+  DateTime? _previousPulse;
+
+  void _listenForLovePulses() {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+
+    _db.collection('users').doc(uid).snapshots().listen((snap) {
+      if (!snap.exists) return;
+
+      final data = snap.data()!;
+      if (data.containsKey('lastPulseAt') && data['lastPulseAt'] != null) {
+        final currentPulse = (data['lastPulseAt'] as Timestamp).toDate();
+
+        if (_previousPulse == null) {
+          _previousPulse = currentPulse; // Initial load, don't trigger.
+        } else if (currentPulse.isAfter(_previousPulse!)) {
+          _previousPulse = currentPulse;
+          // Trigger local notification with a heartbeat vibration pattern
+          final Int64List heartbeatPattern = Int64List(4);
+          heartbeatPattern[0] = 0;
+          heartbeatPattern[1] = 500;
+          heartbeatPattern[2] = 200;
+          heartbeatPattern[3] = 500;
+
+          // Also vibrate immediately if app is in foreground
+          HapticFeedback.heavyImpact();
+          Future.delayed(const Duration(milliseconds: 200), () {
+            HapticFeedback.heavyImpact();
+          });
+
+          _localNotifications.show(
+            id: DateTime.now().millisecond,
+            title: 'Love Pulse ❤️',
+            body: 'Your partner sent you a vibe check!',
+            notificationDetails: NotificationDetails(
+              android: AndroidNotificationDetails(
+                'high_importance_channel',
+                'High Importance Notifications',
+                importance: Importance.max,
+                priority: Priority.high,
+                icon: '@mipmap/launcher_icon',
+                enableVibration: true,
+                vibrationPattern: heartbeatPattern,
+              ),
+            ),
+          );
+        }
+      }
+    });
   }
 
   Future<void> _saveDeviceToken() async {

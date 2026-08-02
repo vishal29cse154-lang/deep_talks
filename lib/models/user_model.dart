@@ -10,9 +10,11 @@ class UserModel {
   final String coupleId;
   final String fcmToken;
   final String? mood;
+  final String? moodNote;
   final bool isOnline;
   final DateTime lastSeen;
   final DateTime createdAt;
+  final DateTime? lastPulseAt;
 
   String get safeDisplayName =>
       displayName.isNotEmpty ? displayName : 'Partner';
@@ -27,10 +29,13 @@ class UserModel {
     this.coupleId = '',
     this.fcmToken = '',
     this.mood,
+    this.moodNote,
     this.isOnline = true,
+    DateTime? lastPulseAt,
     DateTime? lastSeen,
     DateTime? createdAt,
   })  : createdAt = createdAt ?? DateTime.now(),
+        lastPulseAt = lastPulseAt,
         lastSeen = lastSeen ?? DateTime.now();
 
   factory UserModel.fromMap(Map<String, dynamic> map) {
@@ -44,10 +49,14 @@ class UserModel {
       coupleId: map['coupleId'] ?? '',
       fcmToken: map['fcmToken'] ?? '',
       mood: map['mood'],
+      moodNote: map['moodNote'],
       isOnline: map['isOnline'] ?? true,
       lastSeen: map['lastSeen'] != null
           ? (map['lastSeen'] as Timestamp).toDate()
           : DateTime.now(),
+      lastPulseAt: map['lastPulseAt'] != null
+          ? (map['lastPulseAt'] as Timestamp).toDate()
+          : null,
       createdAt: map['createdAt'] != null
           ? (map['createdAt'] as Timestamp).toDate()
           : DateTime.now(),
@@ -65,7 +74,10 @@ class UserModel {
       'coupleId': coupleId,
       'fcmToken': fcmToken,
       'mood': mood,
+      'moodNote': moodNote,
       'isOnline': isOnline,
+      'lastPulseAt':
+          lastPulseAt != null ? Timestamp.fromDate(lastPulseAt!) : null,
       'lastSeen': Timestamp.fromDate(lastSeen),
       'createdAt': Timestamp.fromDate(createdAt),
     };
@@ -78,6 +90,8 @@ class UserModel {
     String? coupleId,
     String? fcmToken,
     String? mood,
+    String? moodNote,
+    DateTime? lastPulseAt,
   }) {
     return UserModel(
       uid: uid,
@@ -89,6 +103,8 @@ class UserModel {
       coupleId: coupleId ?? this.coupleId,
       fcmToken: fcmToken ?? this.fcmToken,
       mood: mood ?? this.mood,
+      moodNote: moodNote ?? this.moodNote,
+      lastPulseAt: lastPulseAt ?? this.lastPulseAt,
       createdAt: createdAt,
     );
   }

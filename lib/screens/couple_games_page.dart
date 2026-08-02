@@ -6,6 +6,7 @@ import '../models/game_card_model.dart';
 import '../services/firestore_service.dart';
 import '../widgets/game_card_widget.dart';
 import '../theme/app_theme.dart';
+import 'intimate_stories_page.dart';
 
 class CoupleGamesPage extends StatefulWidget {
   final String coupleId;
@@ -27,6 +28,7 @@ class _CoupleGamesPageState extends State<CoupleGamesPage> {
       TruthOrDareGame(coupleId: widget.coupleId),
       SpinWheelGame(coupleId: widget.coupleId),
       LoveCouponsGame(coupleId: widget.coupleId),
+      SpicyVideosGame(coupleId: widget.coupleId),
     ]);
   }
 
@@ -43,6 +45,10 @@ class _CoupleGamesPageState extends State<CoupleGamesPage> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentTabIndex,
         onTap: (i) => setState(() => _currentTabIndex = i),
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: AppTheme.surfaceDark,
+        selectedItemColor: AppTheme.accent,
+        unselectedItemColor: AppTheme.textSecondary,
         items: const [
           BottomNavigationBarItem(
               icon: Icon(Icons.style_rounded), label: 'Cards'),
@@ -50,6 +56,8 @@ class _CoupleGamesPageState extends State<CoupleGamesPage> {
               icon: Icon(Icons.pie_chart_rounded), label: 'Wheel'),
           BottomNavigationBarItem(
               icon: Icon(Icons.local_activity_rounded), label: 'Coupons'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.lock_person), label: 'Spicy'),
         ],
       ),
     );
@@ -549,6 +557,57 @@ class LoveCouponsGame extends StatelessWidget {
             'A private booklet for favors & romantic treats.',
             style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── SPICY VIDEOS ────────────────────────────────────────────────────────────
+class SpicyVideosGame extends StatelessWidget {
+  final String coupleId;
+  const SpicyVideosGame({super.key, required this.coupleId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.lock_rounded, size: 64, color: AppTheme.accent),
+          const SizedBox(height: 16),
+          const Text(
+            'Spicy Stories Vault',
+            style: TextStyle(
+                color: AppTheme.textPrimary,
+                fontSize: 22,
+                fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Strictly between you two.\nScreen recording is blocked.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+          ),
+          const SizedBox(height: 32),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => IntimateStoriesPage(coupleId: coupleId)));
+            },
+            icon: const Icon(Icons.local_fire_department, color: Colors.white),
+            label: const Text('Enter Vault',
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.accent,
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
+            ),
+          )
         ],
       ),
     );

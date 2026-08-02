@@ -9,6 +9,7 @@ import '../services/cloudinary_service.dart';
 import '../models/user_model.dart';
 import '../models/couple_model.dart';
 import '../theme/app_theme.dart';
+import '../widgets/profile_photo_viewer.dart';
 import 'chat_page.dart';
 import 'call_page.dart';
 import 'couple_games_page.dart';
@@ -253,65 +254,82 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildAvatar(String photoUrl, String name, {bool isMe = false}) {
-    return GestureDetector(
-      onTap: isMe ? _updateProfilePicture : null,
-      child: Column(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: AppTheme.accent, width: 2.5),
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.accent.withValues(alpha: 0.3),
-                  blurRadius: 12,
-                ),
-              ],
-            ),
-            child: CircleAvatar(
-              radius: 36,
-              backgroundColor: AppTheme.surfaceDark,
-              backgroundImage: photoUrl.isNotEmpty
-                  ? CachedNetworkImageProvider(photoUrl)
-                  : null,
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: () {
+            if (photoUrl.isNotEmpty) {
+              ProfilePhotoViewer.show(
+                context: context,
+                heroTag: 'dashboard_avatar_$name',
+                photoUrl: photoUrl,
+                displayName: name,
+              );
+            }
+          },
+          child: Hero(
+            tag: 'dashboard_avatar_$name',
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: AppTheme.accent, width: 2.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.accent.withValues(alpha: 0.3),
+                    blurRadius: 12,
+                  ),
+                ],
+              ),
               child: Stack(
+                clipBehavior: Clip.none,
                 children: [
-                  if (photoUrl.isEmpty)
-                    Center(
-                      child: Text(
-                        name.isNotEmpty ? name[0].toUpperCase() : '?',
-                        style: const TextStyle(
-                          color: AppTheme.accent,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
+                  CircleAvatar(
+                    radius: 36,
+                    backgroundColor: AppTheme.surfaceDark,
+                    backgroundImage: photoUrl.isNotEmpty
+                        ? CachedNetworkImageProvider(photoUrl)
+                        : null,
+                    child: photoUrl.isEmpty
+                        ? Center(
+                            child: Text(
+                              name.isNotEmpty ? name[0].toUpperCase() : '?',
+                              style: const TextStyle(
+                                color: AppTheme.accent,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          )
+                        : null,
+                  ),
                   if (isMe)
                     Positioned(
                       bottom: 0,
                       right: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: AppTheme.accent,
-                          shape: BoxShape.circle,
+                      child: GestureDetector(
+                        onTap: _updateProfilePicture,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: AppTheme.accent,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.camera_alt,
+                              size: 14, color: Colors.white),
                         ),
-                        child: const Icon(Icons.camera_alt,
-                            size: 12, color: Colors.white),
                       ),
                     ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            name,
-            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          name,
+          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+        ),
+      ],
     );
   }
 
@@ -407,9 +425,11 @@ class _DashboardPageState extends State<DashboardPage> {
       {'icon': '🫂', 'label': 'Cuddly'},
       {'icon': '🔥', 'label': 'Spicy'},
       {'icon': '😴', 'label': 'Tired'},
+      {'icon': '😡', 'label': 'Angry'},
     ];
 
     String currentMood = _currentUser?.mood ?? '';
+    String currentMoodNote = _currentUser?.moodNote ?? '';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -422,52 +442,86 @@ class _DashboardPageState extends State<DashboardPage> {
               fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: moods.map((mood) {
-            final isSelected = currentMood == mood['label'];
-            return GestureDetector(
-              onTap: () async {
-                if (_currentUser != null) {
-                  await _firestoreService.updateUserMood(
-                      _currentUser!.uid, mood['label'] as String);
-                  _loadData();
-                }
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? AppTheme.accent.withValues(alpha: 0.2)
-                      : AppTheme.cardDark,
-                  border: Border.all(
-                    color: isSelected ? AppTheme.accent : AppTheme.dividerColor,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  children: [
-                    Text(mood['icon'] as String,
-                        style: const TextStyle(fontSize: 24)),
-                    const SizedBox(height: 4),
-                    Text(
-                      mood['label'] as String,
-                      style: TextStyle(
-                        fontSize: 10,
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: moods.map((mood) {
+              final isSelected = currentMood == mood['label'];
+              return Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: GestureDetector(
+                  onTap: () async {
+                    if (_currentUser != null) {
+                      await _firestoreService.updateUserMood(
+                          _currentUser!.uid, mood['label'] as String);
+                      _loadData();
+                    }
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppTheme.accent.withValues(alpha: 0.2)
+                          : AppTheme.cardDark,
+                      border: Border.all(
                         color: isSelected
                             ? AppTheme.accent
-                            : AppTheme.textSecondary,
-                        fontWeight:
-                            isSelected ? FontWeight.bold : FontWeight.normal,
+                            : AppTheme.dividerColor,
                       ),
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                  ],
+                    child: Column(
+                      children: [
+                        Text(mood['icon'] as String,
+                            style: const TextStyle(fontSize: 24)),
+                        const SizedBox(height: 4),
+                        Text(
+                          mood['label'] as String,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: isSelected
+                                ? AppTheme.accent
+                                : AppTheme.textSecondary,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            );
-          }).toList(),
+              );
+            }).toList(),
+          ),
+        ),
+        const SizedBox(height: 16),
+        TextField(
+          decoration: InputDecoration(
+            hintText: 'Why are you feeling this way? Add a note...',
+            hintStyle:
+                const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+            filled: true,
+            fillColor: AppTheme.cardDark,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
+            ),
+          ),
+          style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+          controller: TextEditingController(text: currentMoodNote),
+          onSubmitted: (note) async {
+            if (_currentUser != null) {
+              await _firestoreService.updateUserMoodNote(
+                  _currentUser!.uid, note.trim());
+              _loadData();
+            }
+          },
         ),
         if (_partner?.mood != null && _partner!.mood!.isNotEmpty) ...[
           const SizedBox(height: 16),
@@ -485,11 +539,25 @@ class _DashboardPageState extends State<DashboardPage> {
                 Text(
                   '${_partner!.safeDisplayName} is feeling ${_partner!.mood}',
                   style: const TextStyle(
-                      color: AppTheme.textPrimary, fontSize: 13),
+                      color: AppTheme.textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold),
                 ),
               ],
             ),
           ),
+          if (_partner!.moodNote != null && _partner!.moodNote!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0, left: 16, right: 16),
+              child: Text(
+                '"${_partner!.moodNote}"',
+                style: const TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 13,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
         ]
       ],
     );
@@ -500,16 +568,20 @@ class _DashboardPageState extends State<DashboardPage> {
       onTap: () async {
         // Send a haptic / visual hug
         if (_partner != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content:
-                  Text('Vibe check sent to ${_partner!.safeDisplayName}! 💕'),
-              backgroundColor: AppTheme.accent,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20)),
-            ),
-          );
+          await _firestoreService.sendLovePulse(_partner!.uid);
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content:
+                    Text('Vibe check sent to ${_partner!.safeDisplayName}! 💕'),
+                backgroundColor: AppTheme.accent,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20)),
+              ),
+            );
+          }
         }
       },
       child: Container(

@@ -8,6 +8,7 @@ import '../services/firestore_service.dart';
 import '../services/cloudinary_service.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/profile_photo_viewer.dart';
 
 class MemoryVaultPage extends StatefulWidget {
   final String coupleId;
@@ -120,32 +121,45 @@ class _MemoryVaultPageState extends State<MemoryVaultPage> {
           return GridView.builder(
             padding: const EdgeInsets.all(12),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
+              crossAxisCount: 2,
               crossAxisSpacing: 8,
               mainAxisSpacing: 8,
             ),
             itemCount: memories.length,
             itemBuilder: (context, index) {
               final memory = memories[index];
-              return ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: CachedNetworkImage(
-                  imageUrl: memory.url,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    color: AppTheme.cardDark,
-                    child: const Center(
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                            color: AppTheme.accent, strokeWidth: 2),
+              return GestureDetector(
+                onTap: () {
+                  ProfilePhotoViewer.show(
+                    context: context,
+                    heroTag: 'memory_${memory.id}',
+                    photoUrl: memory.url,
+                    displayName: 'Memory',
+                  );
+                },
+                child: Hero(
+                  tag: 'memory_${memory.id}',
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: CachedNetworkImage(
+                      imageUrl: memory.url,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        color: AppTheme.cardDark,
+                        child: const Center(
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                                color: AppTheme.accent, strokeWidth: 2),
+                          ),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        color: AppTheme.cardDark,
+                        child: const Icon(Icons.error, color: Colors.red),
                       ),
                     ),
-                  ),
-                  errorWidget: (context, url, error) => Container(
-                    color: AppTheme.cardDark,
-                    child: const Icon(Icons.error, color: Colors.red),
                   ),
                 ),
               ).animate().fadeIn(delay: Duration(milliseconds: 50 * index));

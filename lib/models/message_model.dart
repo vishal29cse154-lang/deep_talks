@@ -12,6 +12,9 @@ class MessageModel {
   final bool isOpened;
   final String status; // 'sent', 'delivered', 'seen'
   final String? replyToMessageId;
+  final String? replyToText;
+  final String? replyToSenderName;
+  final int? audioDuration;
   final bool isDeleted;
   final List<String> deletedBy;
   final DateTime timestamp;
@@ -26,6 +29,9 @@ class MessageModel {
     this.isOpened = false,
     this.status = 'sent',
     this.replyToMessageId,
+    this.replyToText,
+    this.replyToSenderName,
+    this.audioDuration,
     this.isDeleted = false,
     this.deletedBy = const [],
     DateTime? timestamp,
@@ -45,6 +51,9 @@ class MessageModel {
       isOpened: map['isOpened'] ?? false,
       status: map['status'] ?? 'sent',
       replyToMessageId: map['replyToMessageId'],
+      replyToText: map['replyToText'],
+      replyToSenderName: map['replyToSenderName'],
+      audioDuration: map['audioDuration'],
       isDeleted: map['isDeleted'] ?? false,
       deletedBy: List<String>.from(map['deletedBy'] ?? []),
       timestamp: (map['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
@@ -62,6 +71,9 @@ class MessageModel {
       'isOpened': isOpened,
       'status': status,
       'replyToMessageId': replyToMessageId,
+      'replyToText': replyToText,
+      'replyToSenderName': replyToSenderName,
+      'audioDuration': audioDuration,
       'isDeleted': isDeleted,
       'deletedBy': deletedBy,
       'timestamp': Timestamp.fromDate(timestamp),

@@ -4,6 +4,7 @@ import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../theme/app_theme.dart';
 import '../models/user_model.dart';
+import '../widgets/profile_photo_viewer.dart';
 import 'auth_page.dart';
 import 'notifications_settings_page.dart';
 import 'privacy_security_page.dart';
@@ -94,24 +95,41 @@ class SettingsPage extends StatelessWidget {
                     Center(
                       child: Column(
                         children: [
-                          CircleAvatar(
-                            radius: 50,
-                            backgroundColor: AppTheme.surfaceDark,
-                            backgroundImage: user?.photoUrl.isNotEmpty == true
-                                ? NetworkImage(user!.photoUrl)
-                                : null,
-                            child: user?.photoUrl.isEmpty == true
-                                ? Text(
-                                    user?.safeDisplayName.isNotEmpty == true
-                                        ? user!.safeDisplayName[0].toUpperCase()
-                                        : '?',
-                                    style: const TextStyle(
-                                      color: AppTheme.accent,
-                                      fontSize: 32,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  )
-                                : null,
+                          GestureDetector(
+                            onTap: () {
+                              if (user?.photoUrl.isNotEmpty == true) {
+                                ProfilePhotoViewer.show(
+                                  context: context,
+                                  heroTag: 'settings_avatar_${user!.uid}',
+                                  photoUrl: user!.photoUrl,
+                                  displayName: user.safeDisplayName,
+                                );
+                              }
+                            },
+                            child: Hero(
+                              tag: 'settings_avatar_${user?.uid}',
+                              child: CircleAvatar(
+                                radius: 50,
+                                backgroundColor: AppTheme.surfaceDark,
+                                backgroundImage:
+                                    user?.photoUrl.isNotEmpty == true
+                                        ? NetworkImage(user!.photoUrl)
+                                        : null,
+                                child: user?.photoUrl.isEmpty == true
+                                    ? Text(
+                                        user?.safeDisplayName.isNotEmpty == true
+                                            ? user!.safeDisplayName[0]
+                                                .toUpperCase()
+                                            : '?',
+                                        style: const TextStyle(
+                                          color: AppTheme.accent,
+                                          fontSize: 32,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      )
+                                    : null,
+                              ),
+                            ),
                           ).animate().scale(duration: 400.ms),
                           const SizedBox(height: 16),
                           Text(

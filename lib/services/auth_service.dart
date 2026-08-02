@@ -2,13 +2,22 @@ import 'dart:math';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../models/user_model.dart';
 
 class AuthService {
+  // Singleton instance
+  static final AuthService _instance = AuthService._internal();
+  factory AuthService() => _instance;
+  AuthService._internal();
+
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    serverClientId:
+    clientId:
         '132566369368-og5dnktbcltj78q8i7cjuovab4uhig7t.apps.googleusercontent.com',
+    serverClientId: kIsWeb
+        ? null
+        : '132566369368-og5dnktbcltj78q8i7cjuovab4uhig7t.apps.googleusercontent.com',
   );
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
