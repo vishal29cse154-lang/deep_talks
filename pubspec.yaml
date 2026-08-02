@@ -51,7 +51,6 @@ dependencies:
   screen_protector: ^1.5.3
 
 dependency_overrides:
-  sqflite_android: "2.3.0"
   sqflite: "2.3.0"
 
 dev_dependencies:
