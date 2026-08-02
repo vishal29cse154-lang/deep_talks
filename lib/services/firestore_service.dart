@@ -179,11 +179,12 @@ class FirestoreService {
         .doc(coupleId)
         .collection('messages')
         .where('senderId', isNotEqualTo: myUid)
-        .where('status', isNotEqualTo: 'seen')
         .get();
 
     for (var doc in msgs.docs) {
-      batch.update(doc.reference, {'status': 'seen'});
+      if (doc.data()['status'] != 'seen') {
+        batch.update(doc.reference, {'status': 'seen'});
+      }
     }
     await batch.commit();
   }

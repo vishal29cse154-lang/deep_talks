@@ -1,4 +1,5 @@
 import 'dart:developer';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -17,6 +18,11 @@ class FCMService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   Future<void> initialize() async {
+    if (kIsWeb) {
+      log('FCM not fully supported on Web yet, skipping init for testing.');
+      return;
+    }
+
     // Request permission (Apple & Web)
     NotificationSettings settings = await _fcm.requestPermission(
       alert: true,

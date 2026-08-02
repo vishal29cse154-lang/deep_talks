@@ -248,7 +248,9 @@ class _ChatPageState extends State<ChatPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  partner.displayName,
+                  partner.displayName.isNotEmpty
+                      ? partner.displayName
+                      : 'Your Partner',
                   style: const TextStyle(
                       fontSize: 16, fontWeight: FontWeight.bold),
                 ),
@@ -345,6 +347,13 @@ class _ChatPageState extends State<ChatPage> {
                     child: CircularProgressIndicator(color: AppTheme.accent),
                   );
                 }
+
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    _firestoreService.markMessagesAsSeen(
+                        widget.coupleId, _myUid);
+                  }
+                });
 
                 final messages = snapshot.data ?? [];
                 if (messages.isEmpty) {
