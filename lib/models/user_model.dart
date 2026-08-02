@@ -10,6 +10,8 @@ class UserModel {
   final String coupleId;
   final String fcmToken;
   final String? mood;
+  final bool isOnline;
+  final DateTime lastSeen;
   final DateTime createdAt;
 
   String get safeDisplayName =>
@@ -25,8 +27,11 @@ class UserModel {
     this.coupleId = '',
     this.fcmToken = '',
     this.mood,
+    this.isOnline = true,
+    DateTime? lastSeen,
     DateTime? createdAt,
-  }) : createdAt = createdAt ?? DateTime.now();
+  })  : createdAt = createdAt ?? DateTime.now(),
+        lastSeen = lastSeen ?? DateTime.now();
 
   factory UserModel.fromMap(Map<String, dynamic> map) {
     return UserModel(
@@ -39,7 +44,13 @@ class UserModel {
       coupleId: map['coupleId'] ?? '',
       fcmToken: map['fcmToken'] ?? '',
       mood: map['mood'],
-      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      isOnline: map['isOnline'] ?? true,
+      lastSeen: map['lastSeen'] != null
+          ? (map['lastSeen'] as Timestamp).toDate()
+          : DateTime.now(),
+      createdAt: map['createdAt'] != null
+          ? (map['createdAt'] as Timestamp).toDate()
+          : DateTime.now(),
     );
   }
 
@@ -54,6 +65,8 @@ class UserModel {
       'coupleId': coupleId,
       'fcmToken': fcmToken,
       'mood': mood,
+      'isOnline': isOnline,
+      'lastSeen': Timestamp.fromDate(lastSeen),
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }

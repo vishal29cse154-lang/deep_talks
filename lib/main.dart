@@ -26,8 +26,41 @@ void main() async {
   );
 }
 
-class DeepTalksApp extends StatelessWidget {
+class DeepTalksApp extends StatefulWidget {
   const DeepTalksApp({super.key});
+
+  @override
+  State<DeepTalksApp> createState() => _DeepTalksAppState();
+}
+
+class _DeepTalksAppState extends State<DeepTalksApp>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      if (state == AppLifecycleState.resumed) {
+        FirestoreService().updatePresence(user.uid, true);
+      } else if (state == AppLifecycleState.paused ||
+          state == AppLifecycleState.inactive ||
+          state == AppLifecycleState.detached) {
+        FirestoreService().updatePresence(user.uid, false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

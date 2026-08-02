@@ -110,6 +110,14 @@ class FirestoreService {
     });
   }
 
+  /// Update global presence status
+  Future<void> updatePresence(String uid, bool isOnline) async {
+    await _db.collection('users').doc(uid).update({
+      'isOnline': isOnline,
+      'lastSeen': FieldValue.serverTimestamp(),
+    });
+  }
+
   /// Update a user's display name
   Future<void> updateUserDisplayName(String uid, String newName) async {
     await _db.collection('users').doc(uid).update({'displayName': newName});
