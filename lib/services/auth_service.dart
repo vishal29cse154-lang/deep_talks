@@ -24,7 +24,8 @@ class AuthService {
   }
 
   // ─── Create/Update Firestore User Doc ──────────────────────────
-  Future<void> _createUserDocument(User user) async {
+  Future<void> _createUserDocument(User user,
+      {String? overrideDisplayName}) async {
     final doc = _db.collection('users').doc(user.uid);
     final snapshot = await doc.get();
 
@@ -33,7 +34,7 @@ class AuthService {
       final userModel = UserModel(
         uid: user.uid,
         email: user.email ?? '',
-        displayName: user.displayName ?? '',
+        displayName: overrideDisplayName ?? user.displayName ?? '',
         photoUrl: user.photoURL ?? '',
         inviteCode: inviteCode,
       );
@@ -61,7 +62,8 @@ class AuthService {
       await cred.user?.updateDisplayName(displayName);
     }
     if (cred.user != null) {
-      await _createUserDocument(cred.user!);
+      await _createUserDocument(cred.user!,
+          overrideDisplayName: displayName.isNotEmpty ? displayName : null);
     }
     return cred;
   }

@@ -5,6 +5,8 @@ import '../services/firestore_service.dart';
 import '../theme/app_theme.dart';
 import '../models/user_model.dart';
 import 'auth_page.dart';
+import 'notifications_settings_page.dart';
+import 'privacy_security_page.dart';
 
 class SettingsPage extends StatelessWidget {
   final _authService = AuthService();
@@ -20,6 +22,44 @@ class SettingsPage extends StatelessWidget {
         (route) => false,
       );
     }
+  }
+
+  Future<void> _showRenameDialog(BuildContext context, String uid,
+      String currentName, String title) async {
+    final controller = TextEditingController(text: currentName);
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surfaceDark,
+        title: Text(title, style: const TextStyle(color: AppTheme.textPrimary)),
+        content: TextField(
+          controller: controller,
+          style: const TextStyle(color: AppTheme.textPrimary),
+          decoration: const InputDecoration(
+            hintText: 'Enter new name',
+            hintStyle: TextStyle(color: AppTheme.textSecondary),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel',
+                style: TextStyle(color: AppTheme.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accent),
+            onPressed: () async {
+              final newName = controller.text.trim();
+              if (newName.isNotEmpty) {
+                await _firestoreService.updateUserDisplayName(uid, newName);
+              }
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text('Save', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -62,8 +102,8 @@ class SettingsPage extends StatelessWidget {
                                 : null,
                             child: user?.photoUrl.isEmpty == true
                                 ? Text(
-                                    user?.displayName.isNotEmpty == true
-                                        ? user!.displayName[0].toUpperCase()
+                                    user?.safeDisplayName.isNotEmpty == true
+                                        ? user!.safeDisplayName[0].toUpperCase()
                                         : '?',
                                     style: const TextStyle(
                                       color: AppTheme.accent,
@@ -75,7 +115,7 @@ class SettingsPage extends StatelessWidget {
                           ).animate().scale(duration: 400.ms),
                           const SizedBox(height: 16),
                           Text(
-                            user?.displayName ?? 'Anonymous User',
+                            user?.safeDisplayName ?? 'Anonymous User',
                             style: const TextStyle(
                               color: AppTheme.textPrimary,
                               fontSize: 22,
@@ -93,6 +133,59 @@ class SettingsPage extends StatelessWidget {
                         ],
                       ),
                     ),
+                    const SizedBox(height: 40),
+
+                    // Profile Controls
+                    const Text(
+                      'PROFILES',
+                      style: TextStyle(
+                        color: AppTheme.textSecondary,
+                        fontSize: 12,
+                        letterSpacing: 1.2,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ListTile(
+                      leading: const Icon(Icons.person_rounded,
+                          color: AppTheme.accent),
+                      title: const Text('Change My Name',
+                          style: TextStyle(color: AppTheme.textPrimary)),
+                      trailing: const Icon(Icons.edit_rounded,
+                          color: AppTheme.textSecondary, size: 20),
+                      tileColor: AppTheme.cardDark,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                      onTap: () {
+                        if (user != null) {
+                          _showRenameDialog(context, user.uid,
+                              user.safeDisplayName, 'Change My Name');
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    ListTile(
+                      leading: const Icon(Icons.favorite_rounded,
+                          color: AppTheme.accent),
+                      title: const Text('Change Partner\'s Name',
+                          style: TextStyle(color: AppTheme.textPrimary)),
+                      trailing: const Icon(Icons.edit_rounded,
+                          color: AppTheme.textSecondary, size: 20),
+                      tileColor: AppTheme.cardDark,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                      onTap: () {
+                        if (user != null && user.partnerId.isNotEmpty) {
+                          _showRenameDialog(context, user.partnerId, '',
+                              'Change Partner\'s Name');
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('No partner paired yet.')));
+                        }
+                      },
+                    ),
+
                     const SizedBox(height: 40),
 
                     // Preferences (Placeholder for future)
@@ -117,7 +210,13 @@ class SettingsPage extends StatelessWidget {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) =>
+                                    const NotificationsSettingsPage()));
+                      },
                     ),
                     const SizedBox(height: 12),
                     ListTile(
@@ -131,7 +230,12 @@ class SettingsPage extends StatelessWidget {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const PrivacySecurityPage()));
+                      },
                     ),
                     const SizedBox(height: 40),
 

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:uuid/uuid.dart';
 import '../models/user_model.dart';
 import '../models/couple_model.dart';
@@ -107,6 +108,16 @@ class FirestoreService {
     await _db.collection('couples').doc(coupleId).update({
       'anniversaryDate': Timestamp.fromDate(date),
     });
+  }
+
+  /// Update a user's display name
+  Future<void> updateUserDisplayName(String uid, String newName) async {
+    await _db.collection('users').doc(uid).update({'displayName': newName});
+    // Also try updating the underlying Firebase Auth profile for good measure
+    final authUser = FirebaseAuth.instance.currentUser;
+    if (authUser != null && authUser.uid == uid) {
+      await authUser.updateDisplayName(newName);
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════
