@@ -8,16 +8,22 @@ import 'theme/app_theme.dart';
 import 'screens/auth_page.dart';
 import 'screens/partner_connect_page.dart';
 import 'screens/dashboard_page.dart';
+import 'services/fcm_service.dart';
 import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform, // <-- ADD THIS LINE HERE!
+    options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Initialize Push Notifications
+  final fcm = FCMService();
+  await fcm.initialize();
+
   runApp(
     const DeepTalksApp(),
-  ); // (Keep whatever runApp line is already below it)
+  );
 }
 
 class DeepTalksApp extends StatelessWidget {

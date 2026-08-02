@@ -8,6 +8,8 @@ class UserModel {
   final String inviteCode;
   final String partnerId;
   final String coupleId;
+  final String fcmToken;
+  final String? mood;
   final DateTime createdAt;
 
   UserModel({
@@ -18,6 +20,8 @@ class UserModel {
     this.inviteCode = '',
     this.partnerId = '',
     this.coupleId = '',
+    this.fcmToken = '',
+    this.mood,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
@@ -30,6 +34,8 @@ class UserModel {
       inviteCode: map['inviteCode'] ?? '',
       partnerId: map['partnerId'] ?? '',
       coupleId: map['coupleId'] ?? '',
+      fcmToken: map['fcmToken'] ?? '',
+      mood: map['mood'],
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
@@ -43,6 +49,8 @@ class UserModel {
       'inviteCode': inviteCode,
       'partnerId': partnerId,
       'coupleId': coupleId,
+      'fcmToken': fcmToken,
+      'mood': mood,
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
@@ -52,6 +60,8 @@ class UserModel {
     String? photoUrl,
     String? partnerId,
     String? coupleId,
+    String? fcmToken,
+    String? mood,
   }) {
     return UserModel(
       uid: uid,
@@ -61,6 +71,8 @@ class UserModel {
       inviteCode: inviteCode,
       partnerId: partnerId ?? this.partnerId,
       coupleId: coupleId ?? this.coupleId,
+      fcmToken: fcmToken ?? this.fcmToken,
+      mood: mood ?? this.mood,
       createdAt: createdAt,
     );
   }

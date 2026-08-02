@@ -2,14 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:image_picker/image_picker.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
+import '../services/cloudinary_service.dart';
 import '../models/user_model.dart';
 import '../models/couple_model.dart';
 import '../theme/app_theme.dart';
 import 'chat_page.dart';
 import 'call_page.dart';
 import 'couple_games_page.dart';
+import 'memory_vault_page.dart';
+import 'settings_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -21,6 +25,7 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   final _authService = AuthService();
   final _firestoreService = FirestoreService();
+  final _cloudinaryService = CloudinaryService();
 
   UserModel? _currentUser;
   UserModel? _partner;
@@ -50,6 +55,22 @@ class _DashboardPageState extends State<DashboardPage> {
   int _daysTogether() {
     if (_couple?.anniversaryDate == null) return 0;
     return DateTime.now().difference(_couple!.anniversaryDate!).inDays;
+  }
+
+  Future<void> _updateProfilePicture() async {
+    final uid = _currentUser?.uid;
+    if (uid == null) return;
+
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      final url = await _cloudinaryService.uploadMedia(pickedFile.path);
+      if (url != null) {
+        await _firestoreService.updateProfilePicture(uid, url);
+        _loadData();
+      }
+    }
   }
 
   Future<void> _pickAnniversary() async {
@@ -114,8 +135,8 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                   actions: [
                     IconButton(
-                      icon: const Icon(Icons.logout_rounded),
-                      onPressed: () => _authService.signOut(),
+                      icon: const Icon(Icons.settings_rounded),
+                      onPressed: () => _navigate(SettingsPage()),
                     ),
                   ],
                 ),
@@ -139,13 +160,29 @@ class _DashboardPageState extends State<DashboardPage> {
                             .fadeIn(delay: 150.ms, duration: 500.ms)
                             .slideY(begin: 0.1),
 
+                        const SizedBox(height: 20),
+
+                        // ─── Mood Tracker ───────────────────────────
+                        _buildMoodTracker()
+                            .animate()
+                            .fadeIn(delay: 200.ms, duration: 500.ms)
+                            .slideY(begin: 0.1),
+
+                        const SizedBox(height: 20),
+
+                        // ─── Send Love Pulse ────────────────────────
+                        _buildLovePulseButton()
+                            .animate()
+                            .fadeIn(delay: 250.ms, duration: 500.ms)
+                            .scale(begin: const Offset(0.8, 0.8)),
+
                         const SizedBox(height: 24),
 
                         // ─── Quick Actions Grid ─────────────────────
                         _buildQuickActions().animate().fadeIn(
-                          delay: 300.ms,
-                          duration: 500.ms,
-                        ),
+                              delay: 300.ms,
+                              duration: 500.ms,
+                            ),
                       ],
                     ),
                   ),
@@ -172,6 +209,7 @@ class _DashboardPageState extends State<DashboardPage> {
               _buildAvatar(
                 _currentUser?.photoUrl ?? '',
                 _currentUser?.displayName ?? 'Me',
+                isMe: true,
               ),
               const SizedBox(width: 16),
               // Heart icon
@@ -214,44 +252,66 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildAvatar(String photoUrl, String name) {
-    return Column(
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: AppTheme.accent, width: 2.5),
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.accent.withValues(alpha: 0.3),
-                blurRadius: 12,
-              ),
-            ],
-          ),
-          child: CircleAvatar(
-            radius: 36,
-            backgroundColor: AppTheme.surfaceDark,
-            backgroundImage: photoUrl.isNotEmpty
-                ? CachedNetworkImageProvider(photoUrl)
-                : null,
-            child: photoUrl.isEmpty
-                ? Text(
-                    name.isNotEmpty ? name[0].toUpperCase() : '?',
-                    style: const TextStyle(
-                      color: AppTheme.accent,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
+  Widget _buildAvatar(String photoUrl, String name, {bool isMe = false}) {
+    return GestureDetector(
+      onTap: isMe ? _updateProfilePicture : null,
+      child: Column(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: AppTheme.accent, width: 2.5),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.accent.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                ),
+              ],
+            ),
+            child: CircleAvatar(
+              radius: 36,
+              backgroundColor: AppTheme.surfaceDark,
+              backgroundImage: photoUrl.isNotEmpty
+                  ? CachedNetworkImageProvider(photoUrl)
+                  : null,
+              child: Stack(
+                children: [
+                  if (photoUrl.isEmpty)
+                    Center(
+                      child: Text(
+                        name.isNotEmpty ? name[0].toUpperCase() : '?',
+                        style: const TextStyle(
+                          color: AppTheme.accent,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                  )
-                : null,
+                  if (isMe)
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: AppTheme.accent,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.camera_alt,
+                            size: 12, color: Colors.white),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          name,
-          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
-        ),
-      ],
+          const SizedBox(height: 8),
+          Text(
+            name,
+            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+          ),
+        ],
+      ),
     );
   }
 
@@ -340,6 +400,149 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
+  Widget _buildMoodTracker() {
+    final moods = [
+      {'icon': '😊', 'label': 'Happy'},
+      {'icon': '🥰', 'label': 'Romantic'},
+      {'icon': '🫂', 'label': 'Cuddly'},
+      {'icon': '🔥', 'label': 'Spicy'},
+      {'icon': '😴', 'label': 'Tired'},
+    ];
+
+    String currentMood = _currentUser?.mood ?? '';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'How are you feeling?',
+          style: TextStyle(
+              color: AppTheme.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: moods.map((mood) {
+            final isSelected = currentMood == mood['label'];
+            return GestureDetector(
+              onTap: () async {
+                if (_currentUser != null) {
+                  await _firestoreService.updateUserMood(
+                      _currentUser!.uid, mood['label'] as String);
+                  _loadData();
+                }
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppTheme.accent.withValues(alpha: 0.2)
+                      : AppTheme.cardDark,
+                  border: Border.all(
+                    color: isSelected ? AppTheme.accent : AppTheme.dividerColor,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  children: [
+                    Text(mood['icon'] as String,
+                        style: const TextStyle(fontSize: 24)),
+                    const SizedBox(height: 4),
+                    Text(
+                      mood['label'] as String,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: isSelected
+                            ? AppTheme.accent
+                            : AppTheme.textSecondary,
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+        if (_partner?.mood != null && _partner!.mood!.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.purple.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppTheme.purple.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.favorite, color: AppTheme.purple, size: 16),
+                const SizedBox(width: 8),
+                Text(
+                  '${_partner!.displayName} is feeling ${_partner!.mood}',
+                  style: const TextStyle(
+                      color: AppTheme.textPrimary, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+        ]
+      ],
+    );
+  }
+
+  Widget _buildLovePulseButton() {
+    return GestureDetector(
+      onTap: () async {
+        // Send a haptic / visual hug
+        if (_partner != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Vibe check sent to ${_partner!.displayName}! 💕'),
+              backgroundColor: AppTheme.accent,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
+            ),
+          );
+        }
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          gradient: AppTheme.primaryGradient,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.accent.withValues(alpha: 0.4),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            )
+          ],
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.waves_rounded, color: Colors.white),
+            SizedBox(width: 8),
+            Text(
+              'Send Love Pulse',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildQuickActions() {
     final actions = [
       _QuickAction(
@@ -370,6 +573,13 @@ class _DashboardPageState extends State<DashboardPage> {
         color: AppTheme.accent,
         onTap: () =>
             _navigate(CoupleGamesPage(coupleId: _currentUser!.coupleId)),
+      ),
+      _QuickAction(
+        icon: Icons.photo_library_rounded,
+        label: 'Memory Vault',
+        color: const Color(0xFFE040FB),
+        onTap: () =>
+            _navigate(MemoryVaultPage(coupleId: _currentUser!.coupleId)),
       ),
     ];
 

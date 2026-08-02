@@ -23,10 +23,11 @@ class AuthService {
     return List.generate(6, (_) => chars[rng.nextInt(chars.length)]).join();
   }
 
-  // ─── Create Firestore User Doc ─────────────────────────────────
+  // ─── Create/Update Firestore User Doc ──────────────────────────
   Future<void> _createUserDocument(User user) async {
     final doc = _db.collection('users').doc(user.uid);
     final snapshot = await doc.get();
+
     if (!snapshot.exists) {
       final inviteCode = _generateInviteCode();
       final userModel = UserModel(
@@ -37,6 +38,12 @@ class AuthService {
         inviteCode: inviteCode,
       );
       await doc.set(userModel.toMap());
+    } else {
+      // Sync potentially new profilePic or name on every sign in!
+      await doc.set({
+        'displayName': user.displayName ?? '',
+        'photoUrl': user.photoURL ?? '',
+      }, SetOptions(merge: true));
     }
   }
 

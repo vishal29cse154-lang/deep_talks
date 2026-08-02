@@ -3,11 +3,12 @@ import 'package:uuid/uuid.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
-import '../services/storage_service.dart';
+import '../services/cloudinary_service.dart';
 import '../models/message_model.dart';
+import '../models/user_model.dart';
 import '../widgets/chat_bubble.dart';
 import '../theme/app_theme.dart';
-import 'dart:io';
+import 'call_page.dart';
 
 class ChatPage extends StatefulWidget {
   final String coupleId;
@@ -20,7 +21,7 @@ class ChatPage extends StatefulWidget {
 class _ChatPageState extends State<ChatPage> {
   final _authService = AuthService();
   final _firestoreService = FirestoreService();
-  final _storageService = StorageService();
+  final _cloudinaryService = CloudinaryService();
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
   final _uuid = const Uuid();
@@ -28,8 +29,25 @@ class _ChatPageState extends State<ChatPage> {
 
   bool _isViewOnce = false;
   bool _sending = false;
+  MessageModel? _replyingTo;
+  String _partnerId = '';
 
   String get _myUid => _authService.currentUser?.uid ?? '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPartnerId();
+  }
+
+  Future<void> _fetchPartnerId() async {
+    final myUser = await _firestoreService.getUser(_myUid);
+    if (myUser != null && mounted) {
+      setState(() {
+        _partnerId = myUser.partnerId;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -59,10 +77,12 @@ class _ChatPageState extends State<ChatPage> {
       senderId: _myUid,
       text: text,
       mediaType: MediaType.text,
+      replyToMessageId: _replyingTo?.messageId,
       isViewOnce: false,
     );
 
     _textController.clear();
+    setState(() => _replyingTo = null);
     await _firestoreService.sendMessage(widget.coupleId, msg);
     _scrollToBottom();
   }
@@ -79,23 +99,23 @@ class _ChatPageState extends State<ChatPage> {
     setState(() => _sending = true);
 
     try {
-      final ext = picked.path.split('.').last;
-      final url = await _storageService.uploadChatMedia(
-        coupleId: widget.coupleId,
-        file: File(picked.path),
-        extension: ext,
-      );
+      final url = await _cloudinaryService.uploadMedia(picked.path);
+      if (url == null) throw Exception('Upload failed');
 
       final msg = MessageModel(
         messageId: _uuid.v4(),
         senderId: _myUid,
         mediaUrl: url,
         mediaType: type,
+        replyToMessageId: _replyingTo?.messageId,
         isViewOnce: _isViewOnce,
       );
 
       await _firestoreService.sendMessage(widget.coupleId, msg);
-      setState(() => _isViewOnce = false);
+      setState(() {
+        _isViewOnce = false;
+        _replyingTo = null;
+      });
       _scrollToBottom();
     } catch (e) {
       if (mounted) {
@@ -156,17 +176,159 @@ class _ChatPageState extends State<ChatPage> {
     await _firestoreService.markMessageOpened(widget.coupleId, msg.messageId);
   }
 
+  void _showDeleteMenu(MessageModel msg) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.surfaceDark,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.delete_outline, color: Colors.grey),
+              title: const Text('Delete for me',
+                  style: TextStyle(color: AppTheme.textPrimary)),
+              onTap: () async {
+                Navigator.pop(ctx);
+                await _firestoreService.deleteMessageForMe(
+                    widget.coupleId, msg.messageId, _myUid);
+              },
+            ),
+            if (msg.senderId == _myUid)
+              ListTile(
+                leading:
+                    const Icon(Icons.delete_forever, color: Colors.redAccent),
+                title: const Text('Delete for everyone',
+                    style: TextStyle(color: Colors.redAccent)),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  await _firestoreService.deleteMessageForEveryone(
+                      widget.coupleId, msg.messageId);
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAppBarTitle() {
+    if (_partnerId.isEmpty) {
+      return const Text('Private Chat');
+    }
+    return StreamBuilder<UserModel?>(
+      stream: _firestoreService.userStream(_partnerId),
+      builder: (context, snapshot) {
+        final partner = snapshot.data;
+        if (partner == null) return const Text('Private Chat');
+
+        return Row(
+          children: [
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: AppTheme.cardDark,
+              backgroundImage: partner.photoUrl.isNotEmpty
+                  ? NetworkImage(partner.photoUrl)
+                  : null,
+              child: partner.photoUrl.isEmpty
+                  ? Text(
+                      partner.displayName.isNotEmpty
+                          ? partner.displayName[0].toUpperCase()
+                          : '?',
+                      style:
+                          const TextStyle(fontSize: 14, color: AppTheme.accent),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  partner.displayName,
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  'Online ❤️', // Future: connect to real presence tracker
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: AppTheme.accent.withValues(alpha: 0.8)),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Row(
-          children: [
-            Icon(Icons.lock_rounded, size: 16, color: AppTheme.accent),
-            SizedBox(width: 8),
-            Text('Private Chat'),
-          ],
-        ),
+        title: _buildAppBarTitle(),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.call, color: AppTheme.accent),
+            tooltip: 'Voice Call',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      CallPage(coupleId: widget.coupleId, isVideo: false),
+                ),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.videocam, color: AppTheme.accent),
+            tooltip: 'Video Call',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      CallPage(coupleId: widget.coupleId, isVideo: true),
+                ),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_sweep, color: AppTheme.accent),
+            tooltip: 'Clear Chat',
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  backgroundColor: AppTheme.cardDark,
+                  title: const Text('Clear Chat',
+                      style: TextStyle(color: AppTheme.textPrimary)),
+                  content: const Text(
+                      'Are you sure you want to clear your chat history?',
+                      style: TextStyle(color: AppTheme.textSecondary)),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Cancel',
+                          style: TextStyle(color: AppTheme.accent)),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('Clear',
+                          style: TextStyle(color: Colors.redAccent)),
+                    ),
+                  ],
+                ),
+              );
+              if (confirm == true) {
+                await _firestoreService.clearChat(widget.coupleId, _myUid);
+              }
+            },
+          ),
+        ],
         flexibleSpace: Container(
           decoration: const BoxDecoration(gradient: AppTheme.cardGradient),
         ),
@@ -211,18 +373,31 @@ class _ChatPageState extends State<ChatPage> {
 
                 _scrollToBottom();
 
+                // Mark received messages as seen
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _firestoreService.markMessagesAsSeen(widget.coupleId, _myUid);
+                });
+
                 return ListView.builder(
                   controller: _scrollController,
                   padding: const EdgeInsets.all(16),
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
                     final msg = messages[index];
+
+                    // Skip rendering if I deleted it for myself
+                    if (msg.deletedBy.contains(_myUid)) {
+                      return const SizedBox.shrink();
+                    }
+
                     final isMe = msg.senderId == _myUid;
 
                     return ChatBubble(
                       message: msg,
                       isMe: isMe,
                       onViewOnce: () => _handleViewOnce(msg),
+                      onLongPress: () => _showDeleteMenu(msg),
+                      onSwipeRight: () => setState(() => _replyingTo = msg),
                     );
                   },
                 );
@@ -261,97 +436,186 @@ class _ChatPageState extends State<ChatPage> {
               ),
             ),
 
-          // ─── Input Area ──────────────────────────────────────────
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            decoration: const BoxDecoration(
-              color: AppTheme.surfaceDark,
-              border: Border(top: BorderSide(color: AppTheme.dividerColor)),
-            ),
-            child: SafeArea(
-              top: false,
+          // ─── Replying Context Box ────────────────────────────────
+          if (_replyingTo != null)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: AppTheme.cardDark,
               child: Row(
                 children: [
-                  // Media button
-                  IconButton(
-                    icon: const Icon(
-                      Icons.add_circle_outline_rounded,
-                      color: AppTheme.accent,
-                    ),
-                    onPressed: () => _showMediaPicker(),
-                  ),
-
-                  // View-Once toggle
-                  IconButton(
-                    icon: Icon(
-                      _isViewOnce
-                          ? Icons.timer_rounded
-                          : Icons.timer_off_outlined,
-                      color: _isViewOnce
-                          ? AppTheme.accent
-                          : AppTheme.textSecondary,
-                      size: 22,
-                    ),
-                    onPressed: () => setState(() => _isViewOnce = !_isViewOnce),
-                  ),
-
-                  // Text input
                   Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: AppTheme.cardDark,
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: TextField(
-                        controller: _textController,
-                        textInputAction: TextInputAction.send,
-                        onSubmitted: (_) => _sendTextMessage(),
-                        style: const TextStyle(color: AppTheme.textPrimary),
-                        decoration: const InputDecoration(
-                          hintText: 'Type a message...',
-                          hintStyle: TextStyle(color: AppTheme.textSecondary),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
-                          ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _replyingTo!.senderId == _myUid
+                              ? 'Replying to yourself'
+                              : 'Replying to partner',
+                          style: const TextStyle(
+                              color: AppTheme.accent,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13),
                         ),
-                      ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _replyingTo!.mediaUrl.isNotEmpty
+                              ? '📷 Media Message'
+                              : _replyingTo!.text,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: AppTheme.textSecondary, fontSize: 13),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-
-                  // Send button
-                  _sending
-                      ? const Padding(
-                          padding: EdgeInsets.all(8),
-                          child: SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              color: AppTheme.accent,
-                              strokeWidth: 2,
-                            ),
-                          ),
-                        )
-                      : Container(
-                          decoration: const BoxDecoration(
-                            gradient: AppTheme.accentGradient,
-                            shape: BoxShape.circle,
-                          ),
-                          child: IconButton(
-                            icon: const Icon(
-                              Icons.send_rounded,
-                              color: Colors.white,
-                              size: 20,
-                            ),
-                            onPressed: _sendTextMessage,
-                          ),
-                        ),
+                  IconButton(
+                    icon: const Icon(Icons.close,
+                        color: AppTheme.textSecondary, size: 20),
+                    onPressed: () => setState(() => _replyingTo = null),
+                  ),
                 ],
               ),
             ),
+
+          // ─── Input Area ──────────────────────────────────────────
+          Container(
+            padding:
+                const EdgeInsets.only(left: 12, right: 12, bottom: 24, top: 12),
+            decoration: BoxDecoration(
+                color: AppTheme.surfaceDark.withValues(alpha: 0.9),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, -5),
+                  )
+                ]),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                // Attachments Button
+                Container(
+                  margin: const EdgeInsets.only(bottom: 6, right: 8),
+                  child: IconButton(
+                    icon: const Icon(Icons.add_circle,
+                        color: AppTheme.textSecondary, size: 28),
+                    onPressed: _showMediaPicker,
+                  ),
+                ),
+
+                // Text Field
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppTheme.cardDark,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: AppTheme.dividerColor),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.emoji_emotions_outlined,
+                              color: AppTheme.textSecondary),
+                          onPressed: () {}, // Future: Emoji picker
+                        ),
+                        Expanded(
+                          child: TextField(
+                            controller: _textController,
+                            style: const TextStyle(color: AppTheme.textPrimary),
+                            textCapitalization: TextCapitalization.sentences,
+                            minLines: 1,
+                            maxLines: 5,
+                            onChanged: (text) => setState(() {}),
+                            decoration: const InputDecoration(
+                              hintText: 'Message your love...',
+                              hintStyle:
+                                  TextStyle(color: AppTheme.textSecondary),
+                              border: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              contentPadding:
+                                  EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                        if (_textController.text.trim().isEmpty)
+                          IconButton(
+                            icon: const Icon(Icons.mic_none_rounded,
+                                color: AppTheme.textSecondary),
+                            onPressed: () {}, // Future: Voice recording
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+
+                // Send Button
+                Container(
+                  margin: const EdgeInsets.only(bottom: 4),
+                  decoration: const BoxDecoration(
+                    gradient: AppTheme.primaryGradient,
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: _sending
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                                color: Colors.white, strokeWidth: 2),
+                          )
+                        : Icon(
+                            _textController.text.trim().isEmpty
+                                ? Icons.favorite
+                                : Icons.send_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                    onPressed: _sending
+                        ? null
+                        : (_textController.text.trim().isEmpty
+                            ? () {}
+                            : _sendTextMessage),
+                  ),
+                ),
+              ],
+            ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAttachmentMenu(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceDark,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppTheme.dividerColor),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _attachmentOption(Icons.image_rounded, 'Photo', Colors.purpleAccent,
+              () {
+            Navigator.pop(context);
+            _sendMediaMessage(MediaType.photo);
+          }),
+          _attachmentOption(Icons.videocam_rounded, 'Video', Colors.pinkAccent,
+              () {
+            Navigator.pop(context);
+            _sendMediaMessage(MediaType.video);
+          }),
+          _attachmentOption(Icons.timer_rounded, 'View Once', AppTheme.accent,
+              () {
+            Navigator.pop(context);
+            setState(() => _isViewOnce = true);
+          }),
         ],
       ),
     );
@@ -360,82 +624,33 @@ class _ChatPageState extends State<ChatPage> {
   void _showMediaPicker() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppTheme.surfaceDark,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppTheme.dividerColor,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 20),
-              _mediaOption(Icons.photo_rounded, 'Photo', () {
-                Navigator.pop(ctx);
-                _sendMediaMessage(MediaType.photo);
-              }),
-              _mediaOption(Icons.videocam_rounded, 'Video', () {
-                Navigator.pop(ctx);
-                _sendMediaMessage(MediaType.video);
-              }),
-              _mediaOption(Icons.camera_alt_rounded, 'Camera', () async {
-                Navigator.pop(ctx);
-                final picked = await _picker.pickImage(
-                  source: ImageSource.camera,
-                );
-                if (picked != null) {
-                  setState(() => _sending = true);
-                  try {
-                    final url = await _storageService.uploadChatMedia(
-                      coupleId: widget.coupleId,
-                      file: File(picked.path),
-                      extension: 'jpg',
-                    );
-                    final msg = MessageModel(
-                      messageId: _uuid.v4(),
-                      senderId: _myUid,
-                      mediaUrl: url,
-                      mediaType: MediaType.photo,
-                      isViewOnce: _isViewOnce,
-                    );
-                    await _firestoreService.sendMessage(widget.coupleId, msg);
-                    setState(() => _isViewOnce = false);
-                  } catch (e) {
-                    // Handle error silently
-                  } finally {
-                    if (mounted) setState(() => _sending = false);
-                  }
-                }
-              }),
-            ],
-          ),
-        ),
-      ),
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _buildAttachmentMenu(ctx),
     );
   }
 
-  Widget _mediaOption(IconData icon, String label, VoidCallback onTap) {
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: AppTheme.accent.withValues(alpha: 0.15),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, color: AppTheme.accent),
-      ),
-      title: Text(label, style: const TextStyle(color: AppTheme.textPrimary)),
+  Widget _attachmentOption(
+      IconData icon, String label, Color color, VoidCallback onTap) {
+    return GestureDetector(
       onTap: onTap,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.cardDark,
+              shape: BoxShape.circle,
+              border: Border.all(color: color.withValues(alpha: 0.3)),
+            ),
+            child: Icon(icon, color: color, size: 28),
+          ),
+          const SizedBox(height: 8),
+          Text(label,
+              style:
+                  const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+        ],
+      ),
     );
   }
 }

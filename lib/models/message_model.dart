@@ -10,6 +10,10 @@ class MessageModel {
   final MediaType mediaType;
   final bool isViewOnce;
   final bool isOpened;
+  final String status; // 'sent', 'delivered', 'seen'
+  final String? replyToMessageId;
+  final bool isDeleted;
+  final List<String> deletedBy;
   final DateTime timestamp;
 
   MessageModel({
@@ -20,6 +24,10 @@ class MessageModel {
     this.mediaType = MediaType.text,
     this.isViewOnce = false,
     this.isOpened = false,
+    this.status = 'sent',
+    this.replyToMessageId,
+    this.isDeleted = false,
+    this.deletedBy = const [],
     DateTime? timestamp,
   }) : timestamp = timestamp ?? DateTime.now();
 
@@ -35,6 +43,10 @@ class MessageModel {
       ),
       isViewOnce: map['isViewOnce'] ?? false,
       isOpened: map['isOpened'] ?? false,
+      status: map['status'] ?? 'sent',
+      replyToMessageId: map['replyToMessageId'],
+      isDeleted: map['isDeleted'] ?? false,
+      deletedBy: List<String>.from(map['deletedBy'] ?? []),
       timestamp: (map['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
@@ -48,6 +60,10 @@ class MessageModel {
       'mediaType': mediaType.name,
       'isViewOnce': isViewOnce,
       'isOpened': isOpened,
+      'status': status,
+      'replyToMessageId': replyToMessageId,
+      'isDeleted': isDeleted,
+      'deletedBy': deletedBy,
       'timestamp': Timestamp.fromDate(timestamp),
     };
   }

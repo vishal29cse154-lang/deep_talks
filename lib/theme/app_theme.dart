@@ -3,19 +3,19 @@ import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   // ─── Brand Colors ───────────────────────────────────────────────
-  static const Color darkBg = Color(0xFF121218);
-  static const Color surfaceDark = Color(0xFF1B1B24);
-  static const Color cardDark = Color(0xFF22222E);
-  static const Color accent = Color(0xFFE94057);
+  static const Color darkBg = Color(0xFF0F0F13); // Deep slate
+  static const Color surfaceDark = Color(0xFF16161D); // Slightly lighter slate
+  static const Color cardDark = Color(0xFF1C1C26); // Glassmorphism base
+  static const Color accent = Color(0xFFE94057); // Romantic Crimson
   static const Color purple = Color(0xFF8A2387);
-  static const Color orange = Color(0xFFF27121);
-  static const Color textPrimary = Color(0xFFF5F5F5);
+  static const Color roseGold = Color(0xFFF3C2C2); // Rose gold accent
+  static const Color textPrimary = Color(0xFFF9F9F9);
   static const Color textSecondary = Color(0xFF9E9EAE);
   static const Color dividerColor = Color(0xFF2A2A3A);
 
   // ─── Gradients ──────────────────────────────────────────────────
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [purple, accent, orange],
+    colors: [purple, accent, roseGold],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -70,9 +70,13 @@ class AppTheme {
         iconTheme: const IconThemeData(color: textPrimary),
       ),
       cardTheme: CardThemeData(
-        color: cardDark,
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        color: cardDark.withValues(alpha: 0.8), // Glassmorphism hint
+        elevation: 8,
+        shadowColor: Colors.black45,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+        ),
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
       inputDecorationTheme: InputDecorationTheme(
