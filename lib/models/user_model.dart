@@ -12,6 +12,9 @@ class UserModel {
   final String? mood;
   final DateTime createdAt;
 
+  String get safeDisplayName =>
+      displayName.isNotEmpty ? displayName : 'Partner';
+
   UserModel({
     required this.uid,
     required this.email,

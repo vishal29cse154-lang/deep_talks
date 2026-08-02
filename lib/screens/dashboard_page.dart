@@ -208,7 +208,7 @@ class _DashboardPageState extends State<DashboardPage> {
               // My avatar
               _buildAvatar(
                 _currentUser?.photoUrl ?? '',
-                _currentUser?.displayName ?? 'Me',
+                _currentUser?.safeDisplayName ?? 'Me',
                 isMe: true,
               ),
               const SizedBox(width: 16),
@@ -229,13 +229,13 @@ class _DashboardPageState extends State<DashboardPage> {
               // Partner avatar
               _buildAvatar(
                 _partner?.photoUrl ?? '',
-                _partner?.displayName ?? 'Partner',
+                _partner?.safeDisplayName ?? 'Partner',
               ),
             ],
           ),
           const SizedBox(height: 16),
           Text(
-            '${_currentUser?.displayName ?? "You"} & ${_partner?.displayName ?? "Partner"}',
+            '${_currentUser?.safeDisplayName ?? "You"} & ${_partner?.safeDisplayName ?? "Partner"}',
             style: const TextStyle(
               color: AppTheme.textPrimary,
               fontSize: 18,
@@ -483,7 +483,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 const Icon(Icons.favorite, color: AppTheme.purple, size: 16),
                 const SizedBox(width: 8),
                 Text(
-                  '${_partner!.displayName} is feeling ${_partner!.mood}',
+                  '${_partner!.safeDisplayName} is feeling ${_partner!.mood}',
                   style: const TextStyle(
                       color: AppTheme.textPrimary, fontSize: 13),
                 ),
@@ -502,7 +502,8 @@ class _DashboardPageState extends State<DashboardPage> {
         if (_partner != null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Vibe check sent to ${_partner!.displayName}! 💕'),
+              content:
+                  Text('Vibe check sent to ${_partner!.safeDisplayName}! 💕'),
               backgroundColor: AppTheme.accent,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
