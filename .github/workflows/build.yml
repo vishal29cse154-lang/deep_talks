@@ -26,6 +26,11 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Install Missing Android SDKs
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-37" "platforms;android-36" >/dev/null || true
+
+
       - name: Build Release APK
         run: flutter build apk --release --no-tree-shake-icons
 
