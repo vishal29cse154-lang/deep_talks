@@ -22,7 +22,7 @@ dependencies:
   google_sign_in: ^6.3.0
 
   # Agora WebRTC
-  agora_rtc_engine: ^6.5.0
+  agora_rtc_engine: ^6.6.3
 
   # Media
   image_picker: ^1.1.2
@@ -49,12 +49,18 @@ dependencies:
   emoji_picker_flutter: ^4.5.3
   http: ^1.6.0
   screen_protector: ^1.5.3
+  url_launcher: ^6.3.0
+  flutter_linkify: ^6.0.0
+  scroll_to_index: ^3.0.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
   flutter_launcher_icons: "^0.13.1"
+
+dependency_overrides:
+  ffi: ^2.1.2
 
 flutter_icons:
   android: "launcher_icon"

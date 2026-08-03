@@ -5,6 +5,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../models/message_model.dart';
 import '../theme/app_theme.dart';
 import 'audio_bubble_widget.dart';
+import 'package:flutter_linkify/flutter_linkify.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../screens/full_screen_photo_viewer.dart';
 
 class ChatBubble extends StatelessWidget {
@@ -13,6 +15,7 @@ class ChatBubble extends StatelessWidget {
   final VoidCallback? onViewOnce;
   final VoidCallback? onLongPress;
   final VoidCallback? onSwipeRight;
+  final VoidCallback? onReplyTap;
 
   const ChatBubble({
     super.key,
@@ -21,6 +24,7 @@ class ChatBubble extends StatelessWidget {
     this.onViewOnce,
     this.onLongPress,
     this.onSwipeRight,
+    this.onReplyTap,
   });
 
   Widget _buildStatusIcon() {
@@ -59,46 +63,113 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildQuotedReply() {
+  Widget _buildMessageText(String text) {
+    if (text.isEmpty) return const SizedBox.shrink();
+
+    return SelectableLinkify(
+      text: text,
+      onOpen: (link) async {
+        final Uri uri = Uri.parse(link.url);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } else {
+          debugPrint("Could not launch $link");
+        }
+      },
+      style: const TextStyle(
+        color: AppTheme.textPrimary,
+        fontSize: 15,
+        height: 1.4,
+      ),
+      linkStyle: const TextStyle(
+        color: Colors.blueAccent,
+        decoration: TextDecoration.underline,
+      ),
+    );
+  }
+
+  Widget _buildQuotedReply(BuildContext context) {
     if (message.replyToMessageId == null) return const SizedBox.shrink();
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.2), // Translucent background
-        borderRadius: BorderRadius.circular(10),
-        border: Border(
-          left: BorderSide(
-            color: AppTheme.accent, // rose/crimson colored accent bar
-            width: 4,
+    return GestureDetector(
+      onTap: onReplyTap,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color:
+                Colors.black.withValues(alpha: 0.2), // Translucent background
+            borderRadius: BorderRadius.circular(10),
+            border: Border(
+              left: BorderSide(
+                color: AppTheme.accent, // rose/crimson colored accent bar
+                width: 4,
+              ),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      message.replyToSenderName ?? 'Reply',
+                      style: const TextStyle(
+                        color: AppTheme.accent,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      message.replyToText ?? 'Original message',
+                      style: const TextStyle(
+                        color: AppTheme.textSecondary,
+                        fontSize: 13,
+                        height: 1.2,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              if (message.replyToType == MediaType.photo.name ||
+                  message.replyToType == MediaType.gif.name)
+                if (message.replyToMediaUrl != null &&
+                    message.replyToMediaUrl!.isNotEmpty)
+                  Container(
+                    margin: const EdgeInsets.only(left: 8),
+                    width: 40,
+                    height: 40,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: CachedNetworkImage(
+                        imageUrl: message.replyToMediaUrl!,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  )
+                else
+                  const SizedBox()
+              else if (message.replyToType == MediaType.voice.name)
+                Container(
+                  margin: const EdgeInsets.only(left: 8),
+                  width: 40,
+                  height: 40,
+                  alignment: Alignment.center,
+                  child: const Icon(Icons.mic, color: AppTheme.accent),
+                ),
+            ],
           ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            message.replyToSenderName ?? 'Reply',
-            style: const TextStyle(
-              color: AppTheme.accent,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            message.replyToText ?? 'Original message',
-            style: const TextStyle(
-              color: AppTheme.textSecondary,
-              fontSize: 13,
-              height: 1.2,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
       ),
     );
   }
@@ -151,7 +222,7 @@ class ChatBubble extends StatelessWidget {
       contentWidget = Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          _buildQuotedReply(),
+          _buildQuotedReply(context),
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: GestureDetector(
@@ -195,14 +266,7 @@ class ChatBubble extends StatelessWidget {
           if (message.text.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 6, bottom: 2),
-              child: Text(
-                message.text,
-                style: const TextStyle(
-                  color: AppTheme.textPrimary,
-                  fontSize: 15,
-                  height: 1.4,
-                ),
-              ),
+              child: _buildMessageText(message.text),
             ),
           _buildTimeAndStatus(),
         ],
@@ -247,7 +311,7 @@ class ChatBubble extends StatelessWidget {
         contentWidget = Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            _buildQuotedReply(),
+            _buildQuotedReply(context),
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: GestureDetector(
@@ -298,11 +362,7 @@ class ChatBubble extends StatelessWidget {
             if (message.text.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 6, bottom: 2),
-                child: Text(
-                  message.text,
-                  style: const TextStyle(
-                      color: AppTheme.textPrimary, fontSize: 15, height: 1.4),
-                ),
+                child: _buildMessageText(message.text),
               ),
             _buildTimeAndStatus(),
           ],
@@ -315,7 +375,7 @@ class ChatBubble extends StatelessWidget {
       contentWidget = Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          _buildQuotedReply(),
+          _buildQuotedReply(context),
           AudioBubbleWidget(message: message, isMe: isMe),
           _buildTimeAndStatus(),
         ],
@@ -326,15 +386,8 @@ class ChatBubble extends StatelessWidget {
       contentWidget = Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          _buildQuotedReply(),
-          Text(
-            message.text,
-            style: const TextStyle(
-              color: AppTheme.textPrimary,
-              fontSize: 15,
-              height: 1.4,
-            ),
-          ),
+          _buildQuotedReply(context),
+          _buildMessageText(message.text),
           _buildTimeAndStatus(),
         ],
       );

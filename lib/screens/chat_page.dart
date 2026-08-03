@@ -19,6 +19,8 @@ import '../widgets/profile_photo_viewer.dart';
 import '../theme/app_theme.dart';
 import 'view_once_screen.dart';
 import 'call_page.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:scroll_to_index/scroll_to_index.dart';
 import '../widgets/spicy_gif_picker.dart';
 
 class ChatPage extends StatefulWidget {
@@ -33,7 +35,7 @@ class _ChatPageState extends State<ChatPage> {
   final _authService = AuthService();
   final _firestoreService = FirestoreService();
   final _cloudinaryService = CloudinaryService();
-  final _scrollController = ScrollController();
+  final _scrollController = AutoScrollController();
   final _uuid = const Uuid();
   late final Stream<List<MessageModel>> _messagesStream;
   final _picker = ImagePicker();
@@ -87,6 +89,15 @@ class _ChatPageState extends State<ChatPage> {
     });
   }
 
+  void _scrollToReply(String messageId, List<MessageModel> messages) {
+    final index = messages.indexWhere((m) => m.messageId == messageId);
+    if (index != -1) {
+      _scrollController.scrollToIndex(index,
+          preferPosition: AutoScrollPosition.middle);
+      _scrollController.highlight(index);
+    }
+  }
+
   Future<void> _sendTextMessage(String text) async {
     if (text.isEmpty) return;
 
@@ -106,6 +117,8 @@ class _ChatPageState extends State<ChatPage> {
       replyToMessageId: _replyingTo?.messageId,
       replyToText: replyText,
       replyToSenderName: replySenderName,
+      replyToType: _replyingTo?.mediaType.name,
+      replyToMediaUrl: _replyingTo?.mediaUrl,
       isViewOnce: false,
     );
 
@@ -139,6 +152,8 @@ class _ChatPageState extends State<ChatPage> {
         replyToMessageId: _replyingTo?.messageId,
         replyToText: replyText,
         replyToSenderName: replySenderName,
+        replyToType: _replyingTo?.mediaType.name,
+        replyToMediaUrl: _replyingTo?.mediaUrl,
         audioDuration: durationSeconds,
       );
 
@@ -192,6 +207,8 @@ class _ChatPageState extends State<ChatPage> {
         replyToMessageId: _replyingTo?.messageId,
         replyToText: replyText,
         replyToSenderName: replySenderName,
+        replyToType: _replyingTo?.mediaType.name,
+        replyToMediaUrl: _replyingTo?.mediaUrl,
         isViewOnce: isViewOnce,
       );
 
@@ -227,9 +244,9 @@ class _ChatPageState extends State<ChatPage> {
     try {
       final dir = await getTemporaryDirectory();
       String ext = '.gif';
-      if (mimeType == 'image/png')
+      if (mimeType == 'image/png') {
         ext = '.png';
-      else if (mimeType == 'image/jpeg')
+      } else if (mimeType == 'image/jpeg')
         ext = '.jpg';
       else if (mimeType == 'image/webp') ext = '.webp';
 
@@ -607,6 +624,10 @@ class _ChatPageState extends State<ChatPage> {
                           onViewOnce: () => _handleViewOnce(msg),
                           onLongPress: () => _showDeleteMenu(msg),
                           onSwipeRight: () => setState(() => _replyingTo = msg),
+                          onReplyTap: msg.replyToMessageId != null
+                              ? () => _scrollToReply(
+                                  msg.replyToMessageId!, messages)
+                              : null,
                         );
 
                         // Date Dividers
@@ -623,8 +644,9 @@ class _ChatPageState extends State<ChatPage> {
                           }
                         }
 
+                        Widget finalBubble = bubble;
                         if (showDivider) {
-                          return Column(
+                          finalBubble = Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               _buildDateDivider(msg.timestamp),
@@ -633,7 +655,14 @@ class _ChatPageState extends State<ChatPage> {
                           );
                         }
 
-                        return bubble;
+                        return AutoScrollTag(
+                          key: ValueKey(msg.messageId),
+                          controller: _scrollController,
+                          index: index,
+                          highlightColor:
+                              AppTheme.accent.withValues(alpha: 0.2),
+                          child: finalBubble,
+                        );
                       },
                     );
                   },
@@ -702,50 +731,82 @@ class _ChatPageState extends State<ChatPage> {
 
           // ─── Replying Context Box ────────────────────────────────
           if (_replyingTo != null)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: AppTheme.cardDark,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _replyingTo!.senderId == _myUid
-                              ? 'Replying to yourself'
-                              : 'Replying to partner',
-                          style: const TextStyle(
-                            color: AppTheme.accent,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width * 0.75,
+                ),
+                child: Container(
+                  width: double.infinity,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  color: AppTheme.cardDark,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _replyingTo!.senderId == _myUid
+                                  ? 'Replying to yourself'
+                                  : 'Replying to partner',
+                              style: const TextStyle(
+                                color: AppTheme.accent,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _replyingTo!.mediaUrl.isNotEmpty
+                                  ? '📷 Media Message'
+                                  : _replyingTo!.text,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: AppTheme.textSecondary,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _replyingTo!.mediaUrl.isNotEmpty
-                              ? '📷 Media Message'
-                              : _replyingTo!.text,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppTheme.textSecondary,
-                            fontSize: 13,
+                      ),
+                      if (_replyingTo!.mediaType == MediaType.photo ||
+                          _replyingTo!.mediaType == MediaType.gif)
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 8),
+                          width: 40,
+                          height: 40,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: CachedNetworkImage(
+                              imageUrl: _replyingTo!.mediaUrl,
+                              fit: BoxFit.cover,
+                            ),
                           ),
+                        )
+                      else if (_replyingTo!.mediaType == MediaType.voice)
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 8),
+                          width: 40,
+                          height: 40,
+                          alignment: Alignment.center,
+                          child: const Icon(Icons.mic, color: AppTheme.accent),
                         ),
-                      ],
-                    ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.close,
+                          color: AppTheme.textSecondary,
+                          size: 20,
+                        ),
+                        onPressed: () => setState(() => _replyingTo = null),
+                      ),
+                    ],
                   ),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.close,
-                      color: AppTheme.textSecondary,
-                      size: 20,
-                    ),
-                    onPressed: () => setState(() => _replyingTo = null),
-                  ),
-                ],
+                ),
               ),
             ),
 

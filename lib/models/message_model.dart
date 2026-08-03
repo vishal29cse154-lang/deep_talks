@@ -14,6 +14,8 @@ class MessageModel {
   final String? replyToMessageId;
   final String? replyToText;
   final String? replyToSenderName;
+  final String? replyToType;
+  final String? replyToMediaUrl;
   final int? audioDuration;
   final bool isDeleted;
   final List<String> deletedBy;
@@ -31,6 +33,8 @@ class MessageModel {
     this.replyToMessageId,
     this.replyToText,
     this.replyToSenderName,
+    this.replyToType,
+    this.replyToMediaUrl,
     this.audioDuration,
     this.isDeleted = false,
     this.deletedBy = const [],
@@ -53,6 +57,8 @@ class MessageModel {
       replyToMessageId: map['replyToMessageId'],
       replyToText: map['replyToText'],
       replyToSenderName: map['replyToSenderName'],
+      replyToType: map['replyToType'],
+      replyToMediaUrl: map['replyToMediaUrl'],
       audioDuration: map['audioDuration'],
       isDeleted: map['isDeleted'] ?? false,
       deletedBy: List<String>.from(map['deletedBy'] ?? []),
@@ -73,6 +79,8 @@ class MessageModel {
       'replyToMessageId': replyToMessageId,
       'replyToText': replyToText,
       'replyToSenderName': replyToSenderName,
+      'replyToType': replyToType,
+      'replyToMediaUrl': replyToMediaUrl,
       'audioDuration': audioDuration,
       'isDeleted': isDeleted,
       'deletedBy': deletedBy,
