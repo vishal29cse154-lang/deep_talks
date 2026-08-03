@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'dart:async';
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
@@ -219,6 +220,43 @@ class _ChatPageState extends State<ChatPage> {
     );
     await _firestoreService.sendMessage(widget.coupleId, msg);
     _scrollToBottom();
+  }
+
+  Future<void> _sendGifBytes(Uint8List bytes, String mimeType) async {
+    setState(() => _sending = true);
+    try {
+      final dir = await getTemporaryDirectory();
+      String ext = '.gif';
+      if (mimeType == 'image/png')
+        ext = '.png';
+      else if (mimeType == 'image/jpeg')
+        ext = '.jpg';
+      else if (mimeType == 'image/webp') ext = '.webp';
+
+      final file = File(
+          '${dir.path}/gboard_media_${DateTime.now().millisecondsSinceEpoch}$ext');
+      await file.writeAsBytes(bytes);
+
+      final url = await _cloudinaryService.uploadMedia(file.path);
+      if (url == null) throw Exception('Upload failed');
+
+      final msg = MessageModel(
+        messageId: _uuid.v4(),
+        senderId: _myUid,
+        mediaUrl: url,
+        mediaType: MediaType.gif,
+      );
+
+      await _firestoreService.sendMessage(widget.coupleId, msg);
+      _scrollToBottom();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to send Gboard media: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
   }
 
   Future<void> _handleViewOnce(MessageModel msg) async {
@@ -717,6 +755,7 @@ class _ChatPageState extends State<ChatPage> {
             onSendVoice: _sendVoiceMessage,
             onShowMediaPicker: _showMediaPicker,
             onSendGif: _sendGifMessage,
+            onSendGifBytes: _sendGifBytes,
             isSending: _sending,
           ),
         ],
@@ -848,6 +887,7 @@ class ChatInputBar extends StatefulWidget {
   final Function(String) onSendText;
   final Function(String, int) onSendVoice;
   final Function(String) onSendGif;
+  final Function(Uint8List, String) onSendGifBytes;
 
   const ChatInputBar({
     super.key,
@@ -856,6 +896,7 @@ class ChatInputBar extends StatefulWidget {
     required this.onSendText,
     required this.onSendVoice,
     required this.onSendGif,
+    required this.onSendGifBytes,
   });
 
   @override
@@ -1080,6 +1121,22 @@ class _ChatInputBarState extends State<ChatInputBar> {
                             minLines: 1,
                             maxLines: 5,
                             onChanged: (text) => setState(() {}),
+                            contentInsertionConfiguration:
+                                ContentInsertionConfiguration(
+                              allowedMimeTypes: const <String>[
+                                'image/gif',
+                                'image/png',
+                                'image/jpeg',
+                                'image/webp'
+                              ],
+                              onContentInserted:
+                                  (KeyboardInsertedContent content) async {
+                                if (content.data != null) {
+                                  widget.onSendGifBytes(
+                                      content.data!, content.mimeType);
+                                }
+                              },
+                            ),
                             decoration: const InputDecoration(
                               hintText: 'Message your love...',
                               hintStyle: TextStyle(

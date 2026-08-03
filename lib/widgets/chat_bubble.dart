@@ -162,25 +162,32 @@ class ChatBubble extends StatelessWidget {
                       builder: (_) => FullScreenPhotoViewer(
                         imageUrl: message.mediaUrl,
                         heroTag: 'gif_${message.messageId}',
+                        isViewOnce: message.isViewOnce,
                       ),
                     ));
               },
               child: Hero(
                 tag: 'gif_${message.messageId}',
-                child: CachedNetworkImage(
-                  imageUrl: message.mediaUrl,
-                  fit: BoxFit.cover,
-                  width: 200,
-                  placeholder: (context, url) => Container(
-                    width: 200,
-                    height: 150,
-                    color: AppTheme.surfaceDark,
-                    child: const Center(
-                      child: CircularProgressIndicator(color: AppTheme.accent),
-                    ),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width * 0.75,
+                    maxHeight: MediaQuery.of(context).size.height * 0.5,
                   ),
-                  errorWidget: (context, url, error) =>
-                      const Icon(Icons.broken_image),
+                  child: CachedNetworkImage(
+                    imageUrl: message.mediaUrl,
+                    fit: BoxFit.contain,
+                    placeholder: (context, url) => Container(
+                      width: 200,
+                      height: 150,
+                      color: AppTheme.surfaceDark,
+                      child: const Center(
+                        child:
+                            CircularProgressIndicator(color: AppTheme.accent),
+                      ),
+                    ),
+                    errorWidget: (context, url, error) =>
+                        const Icon(Icons.broken_image),
+                  ),
                 ),
               ),
             ),
@@ -251,23 +258,37 @@ class ChatBubble extends StatelessWidget {
                         builder: (_) => FullScreenPhotoViewer(
                           imageUrl: message.mediaUrl,
                           heroTag: 'img_${message.messageId}',
+                          isViewOnce: message.isViewOnce,
                         ),
                       ));
                 },
                 child: Hero(
                   tag: 'img_${message.messageId}',
-                  child: Image.network(
-                    message.mediaUrl,
-                    width: 260,
-                    height: 200,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      width: 260,
-                      height: 100,
-                      color: AppTheme.surfaceDark,
-                      child: const Center(
-                        child: Icon(Icons.broken_image,
-                            color: AppTheme.textSecondary),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width * 0.75,
+                      maxHeight: MediaQuery.of(context).size.height * 0.5,
+                    ),
+                    child: CachedNetworkImage(
+                      imageUrl: message.mediaUrl,
+                      fit: BoxFit.contain,
+                      placeholder: (context, url) => Container(
+                        width: 200,
+                        height: 150,
+                        color: AppTheme.surfaceDark,
+                        child: const Center(
+                          child:
+                              CircularProgressIndicator(color: AppTheme.accent),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        width: 200,
+                        height: 100,
+                        color: AppTheme.surfaceDark,
+                        child: const Center(
+                          child: Icon(Icons.broken_image,
+                              color: AppTheme.textSecondary),
+                        ),
                       ),
                     ),
                   ),
