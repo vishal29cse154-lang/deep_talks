@@ -155,7 +155,7 @@ class FirestoreService {
         .collection('chats')
         .doc(coupleId)
         .collection('messages')
-        .orderBy('timestamp', descending: false)
+        .orderBy('timestamp', descending: true)
         .snapshots()
         .map(
           (snap) =>

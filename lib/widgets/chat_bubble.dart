@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../models/message_model.dart';
 import '../theme/app_theme.dart';
 import 'audio_bubble_widget.dart';
+import '../screens/full_screen_photo_viewer.dart';
 
 class ChatBubble extends StatelessWidget {
   final MessageModel message;
@@ -153,20 +154,35 @@ class ChatBubble extends StatelessWidget {
           _buildQuotedReply(),
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
-            child: CachedNetworkImage(
-              imageUrl: message.mediaUrl,
-              fit: BoxFit.cover,
-              width: 200,
-              placeholder: (context, url) => Container(
-                width: 200,
-                height: 150,
-                color: AppTheme.surfaceDark,
-                child: const Center(
-                  child: CircularProgressIndicator(color: AppTheme.accent),
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => FullScreenPhotoViewer(
+                        imageUrl: message.mediaUrl,
+                        heroTag: 'gif_${message.messageId}',
+                      ),
+                    ));
+              },
+              child: Hero(
+                tag: 'gif_${message.messageId}',
+                child: CachedNetworkImage(
+                  imageUrl: message.mediaUrl,
+                  fit: BoxFit.cover,
+                  width: 200,
+                  placeholder: (context, url) => Container(
+                    width: 200,
+                    height: 150,
+                    color: AppTheme.surfaceDark,
+                    child: const Center(
+                      child: CircularProgressIndicator(color: AppTheme.accent),
+                    ),
+                  ),
+                  errorWidget: (context, url, error) =>
+                      const Icon(Icons.broken_image),
                 ),
               ),
-              errorWidget: (context, url, error) =>
-                  const Icon(Icons.broken_image),
             ),
           ),
           if (message.text.isNotEmpty)
@@ -227,18 +243,33 @@ class ChatBubble extends StatelessWidget {
             _buildQuotedReply(),
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: Image.network(
-                message.mediaUrl,
-                width: 260,
-                height: 200,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  width: 260,
-                  height: 100,
-                  color: AppTheme.surfaceDark,
-                  child: const Center(
-                    child:
-                        Icon(Icons.broken_image, color: AppTheme.textSecondary),
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => FullScreenPhotoViewer(
+                          imageUrl: message.mediaUrl,
+                          heroTag: 'img_${message.messageId}',
+                        ),
+                      ));
+                },
+                child: Hero(
+                  tag: 'img_${message.messageId}',
+                  child: Image.network(
+                    message.mediaUrl,
+                    width: 260,
+                    height: 200,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      width: 260,
+                      height: 100,
+                      color: AppTheme.surfaceDark,
+                      child: const Center(
+                        child: Icon(Icons.broken_image,
+                            color: AppTheme.textSecondary),
+                      ),
+                    ),
                   ),
                 ),
               ),

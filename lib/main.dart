@@ -9,6 +9,7 @@ import 'screens/auth_page.dart';
 import 'screens/partner_connect_page.dart';
 import 'screens/dashboard_page.dart';
 import 'services/fcm_service.dart';
+import 'services/notification_alert_service.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -20,6 +21,10 @@ void main() async {
   // Initialize Push Notifications
   final fcm = FCMService();
   await fcm.initialize();
+
+  // Initialize Global Alert Listener
+  final alertService = NotificationAlertService();
+  await alertService.initialize();
 
   runApp(
     const DeepTalksApp(),

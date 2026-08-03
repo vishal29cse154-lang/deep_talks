@@ -1,8 +1,18 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
-class NotificationsSettingsPage extends StatelessWidget {
+class NotificationsSettingsPage extends StatefulWidget {
   const NotificationsSettingsPage({super.key});
+
+  @override
+  State<NotificationsSettingsPage> createState() =>
+      _NotificationsSettingsPageState();
+}
+
+class _NotificationsSettingsPageState extends State<NotificationsSettingsPage> {
+  bool _pushEnabled = true;
+  bool _soundEnabled = true;
+  bool _vibrationEnabled = true;
 
   @override
   Widget build(BuildContext context) {
@@ -23,9 +33,9 @@ class NotificationsSettingsPage extends StatelessWidget {
                 style: TextStyle(color: AppTheme.textPrimary)),
             subtitle: const Text('Enable alerts for messages and love pulses',
                 style: TextStyle(color: AppTheme.textSecondary)),
-            value: true,
+            value: _pushEnabled,
             activeColor: AppTheme.accent,
-            onChanged: (val) {},
+            onChanged: (val) => setState(() => _pushEnabled = val),
             tileColor: AppTheme.cardDark,
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -34,9 +44,9 @@ class NotificationsSettingsPage extends StatelessWidget {
           SwitchListTile(
             title: const Text('Sound',
                 style: TextStyle(color: AppTheme.textPrimary)),
-            value: true,
+            value: _soundEnabled,
             activeColor: AppTheme.accent,
-            onChanged: (val) {},
+            onChanged: (val) => setState(() => _soundEnabled = val),
             tileColor: AppTheme.cardDark,
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -45,9 +55,9 @@ class NotificationsSettingsPage extends StatelessWidget {
           SwitchListTile(
             title: const Text('Vibration',
                 style: TextStyle(color: AppTheme.textPrimary)),
-            value: true,
+            value: _vibrationEnabled,
             activeColor: AppTheme.accent,
-            onChanged: (val) {},
+            onChanged: (val) => setState(() => _vibrationEnabled = val),
             tileColor: AppTheme.cardDark,
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

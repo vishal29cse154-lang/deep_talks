@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -6,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../services/cloudinary_service.dart';
+import '../services/notification_alert_service.dart';
 import '../models/user_model.dart';
 import '../models/couple_model.dart';
 import '../theme/app_theme.dart';
@@ -48,6 +50,7 @@ class _DashboardPageState extends State<DashboardPage> {
         _currentUser = user;
         _partner = partner;
       });
+      NotificationAlertService().startListening(user.uid, user.coupleId);
     } else {
       setState(() => _currentUser = user);
     }
@@ -566,6 +569,7 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget _buildLovePulseButton() {
     return GestureDetector(
       onTap: () async {
+        HapticFeedback.heavyImpact();
         // Send a haptic / visual hug
         if (_partner != null) {
           await _firestoreService.sendLovePulse(_partner!.uid);
