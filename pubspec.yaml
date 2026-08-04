@@ -52,6 +52,9 @@ dependencies:
   url_launcher: ^6.3.0
   flutter_linkify: ^6.0.0
   scroll_to_index: ^3.0.1
+  shared_preferences: ^2.5.5
+  vibration: ^3.2.0
+  googleapis_auth: ^2.3.3
 
 dev_dependencies:
   flutter_test:

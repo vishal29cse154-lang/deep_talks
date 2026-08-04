@@ -8,10 +8,10 @@ class SpicyGifPickerSheet extends StatefulWidget {
   final Function(String gifUrl) onGifSelected;
 
   const SpicyGifPickerSheet({
-    Key? key,
+    super.key,
     required this.onEmojiSelected,
     required this.onGifSelected,
-  }) : super(key: key);
+  });
 
   @override
   State<SpicyGifPickerSheet> createState() => _SpicyGifPickerSheetState();

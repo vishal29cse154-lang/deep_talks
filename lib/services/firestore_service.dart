@@ -6,6 +6,7 @@ import '../models/couple_model.dart';
 import '../models/message_model.dart';
 import '../models/memory_model.dart';
 import '../models/story_model.dart';
+import '../services/push_notification_sender.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -139,10 +140,28 @@ class FirestoreService {
   // ═══════════════════════════════════════════════════════════════
 
   /// Send a Love Pulse to a partner
-  Future<void> sendLovePulse(String partnerId) async {
+  Future<void> sendLovePulse(String partnerId, String currentUserId) async {
+    await _db.collection('users').doc(partnerId).collection('pulses').add({
+      'senderId': currentUserId,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+
+    // Also keep updating lastPulseAt just in case any UI relies on it
     await _db.collection('users').doc(partnerId).update({
       'lastPulseAt': FieldValue.serverTimestamp(),
     });
+
+    // Send Client-Side Push Notification
+    final partnerDoc = await getUser(partnerId);
+    final partnerToken = partnerDoc?.fcmToken;
+    if (partnerToken != null && partnerToken.isNotEmpty) {
+      PushNotificationSender.sendPush(
+        fcmToken: partnerToken,
+        title: '❤️ Love Pulse',
+        body: 'Your partner sent you a Love Pulse!',
+        type: 'love_pulse',
+      );
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -171,6 +190,41 @@ class FirestoreService {
         .collection('messages')
         .doc(message.messageId)
         .set(message.toMap());
+
+    // Send Client-Side Push Notification
+    try {
+      final coupleDoc = await _db.collection('couples').doc(coupleId).get();
+      if (!coupleDoc.exists) return;
+      final coupleObj = CoupleModel.fromMap(coupleDoc.data()!);
+      final partnerId = coupleObj.user1Id == message.senderId
+          ? coupleObj.user2Id
+          : coupleObj.user1Id;
+
+      final partnerDoc = await getUser(partnerId);
+      final partnerToken = partnerDoc?.fcmToken;
+
+      if (partnerToken != null && partnerToken.isNotEmpty) {
+        final senderDoc = await getUser(message.senderId);
+        String title = 'Your Partner';
+        if (senderDoc != null && senderDoc.displayName.isNotEmpty) {
+          title = senderDoc.displayName;
+        }
+
+        String body = message.text;
+        if (message.mediaUrl.isNotEmpty) body = '📷 Sent an attachment';
+        if (message.isViewOnce) body = '🤫 Sent a view-once message';
+
+        PushNotificationSender.sendPush(
+          fcmToken: partnerToken,
+          title: title,
+          body: body,
+          type: 'chat_message',
+          coupleId: coupleId,
+        );
+      }
+    } catch (e) {
+      print('Failed to send push: $e');
+    }
   }
 
   /// Mark a view-once message as opened.
@@ -323,6 +377,36 @@ class FirestoreService {
         .collection('intimate_stories')
         .doc(story.id)
         .set(story.toMap());
+
+    try {
+      final coupleDoc = await _db.collection('couples').doc(coupleId).get();
+      if (!coupleDoc.exists) return;
+      final coupleObj = CoupleModel.fromMap(coupleDoc.data()!);
+      final partnerId = coupleObj.user1Id == story.uploaderId
+          ? coupleObj.user2Id
+          : coupleObj.user1Id;
+
+      final partnerDoc = await getUser(partnerId);
+      final partnerToken = partnerDoc?.fcmToken;
+
+      if (partnerToken != null && partnerToken.isNotEmpty) {
+        final senderDoc = await getUser(story.uploaderId);
+        String senderName = 'Your partner';
+        if (senderDoc != null && senderDoc.displayName.isNotEmpty) {
+          senderName = senderDoc.displayName;
+        }
+
+        PushNotificationSender.sendPush(
+          fcmToken: partnerToken,
+          title: '🔥 New Intimate Story',
+          body: '$senderName added a new story for you!',
+          type: 'intimate_story',
+          coupleId: coupleId,
+        );
+      }
+    } catch (e) {
+      print('Failed to send push for story: $e');
+    }
   }
 
   Future<void> toggleStoryReaction(

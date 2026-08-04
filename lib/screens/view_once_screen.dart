@@ -13,8 +13,7 @@ class ViewOnceScreen extends StatefulWidget {
   final String coupleId;
 
   const ViewOnceScreen(
-      {Key? key, required this.message, required this.coupleId})
-      : super(key: key);
+      {super.key, required this.message, required this.coupleId});
 
   @override
   State<ViewOnceScreen> createState() => _ViewOnceScreenState();

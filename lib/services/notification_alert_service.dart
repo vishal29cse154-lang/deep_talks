@@ -2,6 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart'; // For kIsWeb
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vibration/vibration.dart';
+import 'package:flutter/widgets.dart' show WidgetsBinding;
+import 'dart:ui' show AppLifecycleState;
 import 'dart:async';
 
 class NotificationAlertService {
@@ -9,6 +13,8 @@ class NotificationAlertService {
       NotificationAlertService._internal();
   factory NotificationAlertService() => _instance;
   NotificationAlertService._internal();
+
+  static bool isChatScreenActive = false;
 
   final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
@@ -118,12 +124,14 @@ class NotificationAlertService {
                 _triggerAlert(
                   title: '❤️ Love Pulse',
                   body: 'Your partner sent you a Love Pulse!',
+                  isPulse: true,
                 );
               }
             } else if (ts == null) {
               _triggerAlert(
                 title: '❤️ Love Pulse',
                 body: 'Your partner sent you a Love Pulse!',
+                isPulse: true,
               );
             }
           }
@@ -133,35 +141,62 @@ class NotificationAlertService {
   }
 
   Future<void> _triggerAlert(
-      {required String title, required String body}) async {
+      {required String title,
+      required String body,
+      bool isPulse = false}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final pushEnabled = prefs.getBool('notifications_enabled') ?? true;
+    if (!pushEnabled) return;
+
+    final isResumed =
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+
+    // We won't exit early for pulses being resumed anymore because we want them to vibrate!
+    // But we will skip Standard Messages completely if resumed.
+    if (isResumed && !isPulse) {
+      return;
+    }
+
     if (!kIsWeb) {
-      HapticFeedback.heavyImpact();
+      final vibrationEnabled = prefs.getBool('vibration_enabled') ?? true;
+      if (vibrationEnabled) {
+        if (isPulse && (await Vibration.hasVibrator() == true)) {
+          // Vibrate for a few seconds unconditionally
+          Vibration.vibrate(
+              pattern: [0, 1000, 500, 1000, 500, 1000, 500, 1000]);
+        } else if (!isResumed) {
+          // Normal haptic feedback only if not resumed
+          HapticFeedback.heavyImpact();
+        }
+      }
     }
 
     if (kIsWeb) {
       print('WEB NOTIFICATION: $title - $body');
-      // On web we just print or we could trigger an in-app toast instead.
       return;
     }
 
-    // Attempt standard UI notification
-    const androidDetails = AndroidNotificationDetails(
-        'deeptalks_alerts', 'DeepTalks Alerts',
-        importance: Importance.max, priority: Priority.max, ticker: 'ticker');
-    const iosDetails = DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-    );
-    const details =
-        NotificationDetails(android: androidDetails, iOS: iosDetails);
+    // ONLY SHOW UI NOTIFICATIONS IF THE APP IS OFF.
+    // The user requested: "notification should only come when app is off"
+    if (!isResumed) {
+      const androidDetails = AndroidNotificationDetails(
+          'deeptalks_alerts', 'DeepTalks Alerts',
+          importance: Importance.max, priority: Priority.max, ticker: 'ticker');
+      const iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
+      const details =
+          NotificationDetails(android: androidDetails, iOS: iosDetails);
 
-    await _localNotificationsPlugin.show(
-      id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
-      title: title,
-      body: body,
-      notificationDetails: details,
-    );
+      await _localNotificationsPlugin.show(
+        id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
+        title: title,
+        body: body,
+        notificationDetails: details,
+      );
+    }
   }
 
   void stopListening() {

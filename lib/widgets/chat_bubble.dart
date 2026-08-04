@@ -66,14 +66,14 @@ class ChatBubble extends StatelessWidget {
   Widget _buildMessageText(String text) {
     if (text.isEmpty) return const SizedBox.shrink();
 
-    return SelectableLinkify(
+    return Linkify(
       text: text,
       onOpen: (link) async {
         final Uri uri = Uri.parse(link.url);
-        if (await canLaunchUrl(uri)) {
+        try {
           await launchUrl(uri, mode: LaunchMode.externalApplication);
-        } else {
-          debugPrint("Could not launch $link");
+        } catch (e) {
+          debugPrint("Could not launch $link: $e");
         }
       },
       style: const TextStyle(

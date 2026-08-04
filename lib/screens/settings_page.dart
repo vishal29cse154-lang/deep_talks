@@ -101,7 +101,7 @@ class SettingsPage extends StatelessWidget {
                                 ProfilePhotoViewer.show(
                                   context: context,
                                   heroTag: 'settings_avatar_${user!.uid}',
-                                  photoUrl: user!.photoUrl,
+                                  photoUrl: user.photoUrl,
                                   displayName: user.safeDisplayName,
                                 );
                               }

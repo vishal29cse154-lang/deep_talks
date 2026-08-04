@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
 
 class NotificationsSettingsPage extends StatefulWidget {
@@ -13,6 +14,21 @@ class _NotificationsSettingsPageState extends State<NotificationsSettingsPage> {
   bool _pushEnabled = true;
   bool _soundEnabled = true;
   bool _vibrationEnabled = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _pushEnabled = prefs.getBool('notifications_enabled') ?? true;
+      _soundEnabled = prefs.getBool('sound_enabled') ?? true;
+      _vibrationEnabled = prefs.getBool('vibration_enabled') ?? true;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,8 +50,12 @@ class _NotificationsSettingsPageState extends State<NotificationsSettingsPage> {
             subtitle: const Text('Enable alerts for messages and love pulses',
                 style: TextStyle(color: AppTheme.textSecondary)),
             value: _pushEnabled,
-            activeColor: AppTheme.accent,
-            onChanged: (val) => setState(() => _pushEnabled = val),
+            activeThumbColor: AppTheme.accent,
+            onChanged: (val) async {
+              setState(() => _pushEnabled = val);
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setBool('notifications_enabled', val);
+            },
             tileColor: AppTheme.cardDark,
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -45,8 +65,12 @@ class _NotificationsSettingsPageState extends State<NotificationsSettingsPage> {
             title: const Text('Sound',
                 style: TextStyle(color: AppTheme.textPrimary)),
             value: _soundEnabled,
-            activeColor: AppTheme.accent,
-            onChanged: (val) => setState(() => _soundEnabled = val),
+            activeThumbColor: AppTheme.accent,
+            onChanged: (val) async {
+              setState(() => _soundEnabled = val);
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setBool('sound_enabled', val);
+            },
             tileColor: AppTheme.cardDark,
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -56,8 +80,12 @@ class _NotificationsSettingsPageState extends State<NotificationsSettingsPage> {
             title: const Text('Vibration',
                 style: TextStyle(color: AppTheme.textPrimary)),
             value: _vibrationEnabled,
-            activeColor: AppTheme.accent,
-            onChanged: (val) => setState(() => _vibrationEnabled = val),
+            activeThumbColor: AppTheme.accent,
+            onChanged: (val) async {
+              setState(() => _vibrationEnabled = val);
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setBool('vibration_enabled', val);
+            },
             tileColor: AppTheme.cardDark,
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

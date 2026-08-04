@@ -31,11 +31,10 @@ class UserModel {
     this.mood,
     this.moodNote,
     this.isOnline = true,
-    DateTime? lastPulseAt,
+    this.lastPulseAt,
     DateTime? lastSeen,
     DateTime? createdAt,
   })  : createdAt = createdAt ?? DateTime.now(),
-        lastPulseAt = lastPulseAt,
         lastSeen = lastSeen ?? DateTime.now();
 
   factory UserModel.fromMap(Map<String, dynamic> map) {

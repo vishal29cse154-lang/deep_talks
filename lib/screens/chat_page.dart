@@ -9,9 +9,11 @@ import 'package:record/record.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/services.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../services/cloudinary_service.dart';
+import '../services/notification_alert_service.dart';
 import '../models/message_model.dart';
 import '../models/user_model.dart';
 import '../widgets/chat_bubble.dart';
@@ -51,6 +53,7 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void initState() {
     super.initState();
+    NotificationAlertService.isChatScreenActive = true;
     _messagesStream = _firestoreService.messagesStream(widget.coupleId);
     _fetchPartnerId();
     _scrollController.addListener(() {
@@ -73,6 +76,7 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   void dispose() {
+    NotificationAlertService.isChatScreenActive = false;
     _scrollController.dispose();
     super.dispose();
   }
@@ -96,6 +100,12 @@ class _ChatPageState extends State<ChatPage> {
           preferPosition: AutoScrollPosition.middle);
       _scrollController.highlight(index);
     }
+  }
+
+  void _onReplyTriggered(MessageModel selectedMessage) {
+    setState(() {
+      _replyingTo = selectedMessage;
+    });
   }
 
   Future<void> _sendTextMessage(String text) async {
@@ -299,6 +309,36 @@ class _ChatPageState extends State<ChatPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (msg.text.isNotEmpty)
+              ListTile(
+                leading: const Icon(Icons.copy, color: Colors.blueAccent),
+                title: const Text(
+                  'Copy text',
+                  style: TextStyle(color: AppTheme.textPrimary),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Clipboard.setData(ClipboardData(text: msg.text));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Copied into clipboard!')),
+                  );
+                },
+              ),
+            if (msg.mediaUrl.isNotEmpty) // allow copying the raw link if needed
+              ListTile(
+                leading: const Icon(Icons.link, color: Colors.blueAccent),
+                title: const Text(
+                  'Copy media URL',
+                  style: TextStyle(color: AppTheme.textPrimary),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Clipboard.setData(ClipboardData(text: msg.mediaUrl));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Copied into clipboard!')),
+                  );
+                },
+              ),
             ListTile(
               leading: const Icon(Icons.delete_outline, color: Colors.grey),
               title: const Text(
@@ -623,7 +663,7 @@ class _ChatPageState extends State<ChatPage> {
                           isMe: isMe,
                           onViewOnce: () => _handleViewOnce(msg),
                           onLongPress: () => _showDeleteMenu(msg),
-                          onSwipeRight: () => setState(() => _replyingTo = msg),
+                          onSwipeRight: () => _onReplyTriggered(msg),
                           onReplyTap: msg.replyToMessageId != null
                               ? () => _scrollToReply(
                                   msg.replyToMessageId!, messages)

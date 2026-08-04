@@ -12,7 +12,7 @@ class AuthService {
   AuthService._internal();
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
+  late final GoogleSignIn _googleSignIn = GoogleSignIn(
     clientId:
         '132566369368-og5dnktbcltj78q8i7cjuovab4uhig7t.apps.googleusercontent.com',
     serverClientId: kIsWeb

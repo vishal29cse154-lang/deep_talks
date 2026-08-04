@@ -24,7 +24,7 @@ class PrivacySecurityPage extends StatelessWidget {
             subtitle: const Text('Prevent screenshots of view-once media',
                 style: TextStyle(color: AppTheme.textSecondary)),
             value: true,
-            activeColor: AppTheme.accent,
+            activeThumbColor: AppTheme.accent,
             onChanged: (val) {},
             tileColor: AppTheme.cardDark,
             shape:
@@ -37,7 +37,7 @@ class PrivacySecurityPage extends StatelessWidget {
             subtitle: const Text('Disable keyboard learning in private chats',
                 style: TextStyle(color: AppTheme.textSecondary)),
             value: true,
-            activeColor: AppTheme.accent,
+            activeThumbColor: AppTheme.accent,
             onChanged: (val) {},
             tileColor: AppTheme.cardDark,
             shape:

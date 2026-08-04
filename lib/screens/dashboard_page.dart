@@ -571,8 +571,9 @@ class _DashboardPageState extends State<DashboardPage> {
       onTap: () async {
         HapticFeedback.heavyImpact();
         // Send a haptic / visual hug
-        if (_partner != null) {
-          await _firestoreService.sendLovePulse(_partner!.uid);
+        if (_partner != null && _currentUser != null) {
+          await _firestoreService.sendLovePulse(
+              _partner!.uid, _currentUser!.uid);
 
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(

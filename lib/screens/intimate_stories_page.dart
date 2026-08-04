@@ -16,8 +16,7 @@ import '../theme/app_theme.dart';
 class IntimateStoriesPage extends StatefulWidget {
   final String coupleId;
 
-  const IntimateStoriesPage({Key? key, required this.coupleId})
-      : super(key: key);
+  const IntimateStoriesPage({super.key, required this.coupleId});
 
   @override
   State<IntimateStoriesPage> createState() => _IntimateStoriesPageState();
@@ -137,11 +136,11 @@ class StoryPlayerWidget extends StatefulWidget {
   final String myUid;
 
   const StoryPlayerWidget({
-    Key? key,
+    super.key,
     required this.story,
     required this.coupleId,
     required this.myUid,
-  }) : super(key: key);
+  });
 
   @override
   State<StoryPlayerWidget> createState() => _StoryPlayerWidgetState();
