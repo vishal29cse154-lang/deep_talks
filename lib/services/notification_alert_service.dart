@@ -15,6 +15,7 @@ class NotificationAlertService {
   NotificationAlertService._internal();
 
   static bool isChatScreenActive = false;
+  static String activeCoupleId = '';
 
   final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
@@ -88,6 +89,7 @@ class NotificationAlertService {
                 _triggerAlert(
                   title: 'New Message',
                   body: data['text'] ?? 'Sent you an attachment 📷',
+                  coupleId: coupleId,
                 );
               }
             } else if (ts == null) {
@@ -96,6 +98,7 @@ class NotificationAlertService {
               _triggerAlert(
                 title: 'New Message',
                 body: data['text'] ?? 'Sent you an attachment 📷',
+                coupleId: coupleId,
               );
             }
           }
@@ -143,7 +146,8 @@ class NotificationAlertService {
   Future<void> _triggerAlert(
       {required String title,
       required String body,
-      bool isPulse = false}) async {
+      bool isPulse = false,
+      String? coupleId}) async {
     final prefs = await SharedPreferences.getInstance();
     final pushEnabled = prefs.getBool('notifications_enabled') ?? true;
     if (!pushEnabled) return;
@@ -151,19 +155,18 @@ class NotificationAlertService {
     final isResumed =
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
 
-    // We won't exit early for pulses being resumed anymore because we want them to vibrate!
-    // But we will skip Standard Messages completely if resumed.
-    if (isResumed && !isPulse) {
-      return;
+    if (!isPulse) {
+      if (isResumed || (isChatScreenActive && activeCoupleId == coupleId)) {
+        return;
+      }
     }
 
     if (!kIsWeb) {
       final vibrationEnabled = prefs.getBool('vibration_enabled') ?? true;
       if (vibrationEnabled) {
         if (isPulse && (await Vibration.hasVibrator() == true)) {
-          // Vibrate for a few seconds unconditionally
-          Vibration.vibrate(
-              pattern: [0, 1000, 500, 1000, 500, 1000, 500, 1000]);
+          // Vibrate with Heartbeat Rhythm
+          Vibration.vibrate(pattern: [0, 400, 150, 400]);
         } else if (!isResumed) {
           // Normal haptic feedback only if not resumed
           HapticFeedback.heavyImpact();

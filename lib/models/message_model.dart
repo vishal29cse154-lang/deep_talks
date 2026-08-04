@@ -20,6 +20,7 @@ class MessageModel {
   final bool isDeleted;
   final List<String> deletedBy;
   final DateTime timestamp;
+  final Map<String, String>? reactions;
 
   MessageModel({
     required this.messageId,
@@ -38,6 +39,7 @@ class MessageModel {
     this.audioDuration,
     this.isDeleted = false,
     this.deletedBy = const [],
+    this.reactions,
     DateTime? timestamp,
   }) : timestamp = timestamp ?? DateTime.now();
 
@@ -62,6 +64,9 @@ class MessageModel {
       audioDuration: map['audioDuration'],
       isDeleted: map['isDeleted'] ?? false,
       deletedBy: List<String>.from(map['deletedBy'] ?? []),
+      reactions: map['reactions'] != null
+          ? Map<String, String>.from(map['reactions'] as Map)
+          : null,
       timestamp: (map['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
@@ -84,6 +89,7 @@ class MessageModel {
       'audioDuration': audioDuration,
       'isDeleted': isDeleted,
       'deletedBy': deletedBy,
+      'reactions': reactions,
       'timestamp': Timestamp.fromDate(timestamp),
     };
   }

@@ -237,6 +237,39 @@ class FirestoreService {
         .update({'isOpened': true});
   }
 
+  /// Toggle a reaction on a message
+  Future<void> toggleMessageReaction(
+      String coupleId, String messageId, String userId, String emoji) async {
+    final docRef = _db
+        .collection('chats')
+        .doc(coupleId)
+        .collection('messages')
+        .doc(messageId);
+
+    await _db.runTransaction((transaction) async {
+      final snapshot = await transaction.get(docRef);
+      if (!snapshot.exists) return;
+
+      final data = snapshot.data();
+      if (data == null) return;
+
+      Map<String, String> currentReactions = {};
+      if (data['reactions'] != null) {
+        currentReactions = Map<String, String>.from(data['reactions'] as Map);
+      }
+
+      if (currentReactions[userId] == emoji) {
+        // If the same emoji is tapped again, remove it (toggle off)
+        currentReactions.remove(userId);
+      } else {
+        // Otherwise, set/replace the emoji for this user
+        currentReactions[userId] = emoji;
+      }
+
+      transaction.update(docRef, {'reactions': currentReactions});
+    });
+  }
+
   /// Delete a single message for everyone
   Future<void> deleteMessageForEveryone(
       String coupleId, String messageId) async {

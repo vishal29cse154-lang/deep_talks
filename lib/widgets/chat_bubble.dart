@@ -393,18 +393,71 @@ class ChatBubble extends StatelessWidget {
       );
     }
 
+    final bubbleWidget = Container(
+      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      constraints: const BoxConstraints(maxWidth: 280),
+      decoration: _bubbleDecoration(),
+      child: contentWidget,
+    );
+
+    Widget stackedBubble = bubbleWidget;
+    if (message.reactions != null && message.reactions!.isNotEmpty) {
+      final uniqueEmojis = message.reactions!.values.toSet().toList();
+      final count = message.reactions!.length;
+      stackedBubble = Stack(
+        clipBehavior: Clip.none,
+        children: [
+          bubbleWidget,
+          Positioned(
+            bottom: -2,
+            right: isMe ? null : 16,
+            left: isMe ? 16 : null,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceDark,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppTheme.accent.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ...uniqueEmojis.map(
+                      (e) => Text(e, style: const TextStyle(fontSize: 12))),
+                  if (count > 1)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 4),
+                      child: Text(
+                        '$count',
+                        style: const TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
     return SwipeTo(
       onRightSwipe: onSwipeRight != null ? (details) => onSwipeRight!() : null,
       child: GestureDetector(
         onLongPress: onLongPress,
         child: Align(
           alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-          child: Container(
-            margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            constraints: const BoxConstraints(maxWidth: 280),
-            decoration: _bubbleDecoration(),
-            child: contentWidget,
+          child: Padding(
+            padding:
+                const EdgeInsets.only(bottom: 8), // Extra padding for the badge
+            child: stackedBubble,
           ),
         ),
       ),

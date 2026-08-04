@@ -48,12 +48,19 @@ class _ChatPageState extends State<ChatPage> {
   String _partnerId = '';
   bool _showScrollToBottom = false;
 
+  bool _isSearching = false;
+  String _searchQuery = '';
+  List<int> _searchMatchIndices = [];
+  int _currentSearchIndex = -1;
+  List<MessageModel> _currentMessages = [];
+
   String get _myUid => _authService.currentUser?.uid ?? '';
 
   @override
   void initState() {
     super.initState();
     NotificationAlertService.isChatScreenActive = true;
+    NotificationAlertService.activeCoupleId = widget.coupleId;
     _messagesStream = _firestoreService.messagesStream(widget.coupleId);
     _fetchPartnerId();
     _scrollController.addListener(() {
@@ -77,6 +84,7 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void dispose() {
     NotificationAlertService.isChatScreenActive = false;
+    NotificationAlertService.activeCoupleId = '';
     _scrollController.dispose();
     super.dispose();
   }
@@ -100,6 +108,56 @@ class _ChatPageState extends State<ChatPage> {
           preferPosition: AutoScrollPosition.middle);
       _scrollController.highlight(index);
     }
+  }
+
+  void _onSearchQueryChanged(String query) {
+    setState(() {
+      _searchQuery = query.toLowerCase();
+      _searchMatchIndices.clear();
+      _currentSearchIndex = -1;
+
+      if (_searchQuery.isNotEmpty) {
+        for (int i = 0; i < _currentMessages.length; i++) {
+          if (_currentMessages[i].text.toLowerCase().contains(_searchQuery)) {
+            _searchMatchIndices.add(i);
+          }
+        }
+        if (_searchMatchIndices.isNotEmpty) {
+          _currentSearchIndex = 0;
+          _scrollToSearchIndex();
+        }
+      }
+    });
+  }
+
+  void _scrollToSearchIndex() {
+    if (_searchMatchIndices.isEmpty || _currentSearchIndex < 0) return;
+    int index = _searchMatchIndices[_currentSearchIndex];
+    _scrollController.scrollToIndex(index,
+        preferPosition: AutoScrollPosition.middle);
+    _scrollController.highlight(index,
+        highlightDuration: const Duration(seconds: 1));
+  }
+
+  void _nextSearchMatchUp() {
+    if (_searchMatchIndices.isEmpty)
+      return; // Up visually = older message = higher index
+    setState(() {
+      _currentSearchIndex =
+          (_currentSearchIndex + 1) % _searchMatchIndices.length;
+    });
+    _scrollToSearchIndex();
+  }
+
+  void _prevSearchMatchDown() {
+    if (_searchMatchIndices.isEmpty)
+      return; // Down visually = newer message = lower index
+    setState(() {
+      _currentSearchIndex =
+          (_currentSearchIndex - 1 + _searchMatchIndices.length) %
+              _searchMatchIndices.length;
+    });
+    _scrollToSearchIndex();
   }
 
   void _onReplyTriggered(MessageModel selectedMessage) {
@@ -299,6 +357,8 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void _showDeleteMenu(MessageModel msg) {
+    final emojis = ['❤️', '🔥', '😆', '😮', '😢', '👍'];
+
     showModalBottomSheet(
       context: context,
       backgroundColor: AppTheme.surfaceDark,
@@ -309,6 +369,34 @@ class _ChatPageState extends State<ChatPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Reactions Bar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: emojis.map((emoji) {
+                  final isSelected = msg.reactions?[_myUid] == emoji;
+                  return GestureDetector(
+                    onTap: () async {
+                      Navigator.pop(ctx);
+                      await _firestoreService.toggleMessageReaction(
+                          widget.coupleId, msg.messageId, _myUid, emoji);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: isSelected
+                          ? BoxDecoration(
+                              color: AppTheme.accent.withValues(alpha: 0.2),
+                              shape: BoxShape.circle)
+                          : null,
+                      child: Text(emoji, style: const TextStyle(fontSize: 28)),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            Divider(color: AppTheme.dividerColor.withValues(alpha: 0.5)),
+
             if (msg.text.isNotEmpty)
               ListTile(
                 leading: const Icon(Icons.copy, color: Colors.blueAccent),
@@ -436,6 +524,32 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Widget _buildAppBarTitle() {
+    if (_isSearching) {
+      return Row(
+        children: [
+          Expanded(
+            child: TextField(
+              autofocus: true,
+              style: const TextStyle(color: AppTheme.textPrimary, fontSize: 16),
+              decoration: InputDecoration(
+                hintText: 'Search...',
+                hintStyle: TextStyle(
+                    color: AppTheme.textSecondary.withValues(alpha: 0.7)),
+                border: InputBorder.none,
+              ),
+              onChanged: _onSearchQueryChanged,
+            ),
+          ),
+          if (_searchMatchIndices.isNotEmpty)
+            Text(
+              '${_currentSearchIndex + 1}/${_searchMatchIndices.length}',
+              style:
+                  const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+            ),
+        ],
+      );
+    }
+
     if (_partnerId.isEmpty) {
       return const Text('Private Chat');
     }
@@ -517,69 +631,101 @@ class _ChatPageState extends State<ChatPage> {
       appBar: AppBar(
         title: _buildAppBarTitle(),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.call, color: AppTheme.accent),
-            tooltip: 'Voice Call',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) =>
-                      CallPage(coupleId: widget.coupleId, isVideo: false),
-                ),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.videocam, color: AppTheme.accent),
-            tooltip: 'Video Call',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) =>
-                      CallPage(coupleId: widget.coupleId, isVideo: true),
-                ),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_sweep, color: AppTheme.accent),
-            tooltip: 'Clear Chat',
-            onPressed: () async {
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  backgroundColor: AppTheme.cardDark,
-                  title: const Text(
-                    'Clear Chat',
-                    style: TextStyle(color: AppTheme.textPrimary),
+          if (_isSearching) ...[
+            IconButton(
+              icon: const Icon(Icons.keyboard_arrow_up, color: AppTheme.accent),
+              onPressed: _nextSearchMatchUp,
+            ),
+            IconButton(
+              icon:
+                  const Icon(Icons.keyboard_arrow_down, color: AppTheme.accent),
+              onPressed: _prevSearchMatchDown,
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, color: AppTheme.accent),
+              onPressed: () {
+                setState(() {
+                  _isSearching = false;
+                  _searchQuery = '';
+                  _searchMatchIndices.clear();
+                  _currentSearchIndex = -1;
+                });
+              },
+            ),
+          ] else ...[
+            IconButton(
+              icon: const Icon(Icons.search, color: AppTheme.accent),
+              tooltip: 'Search Messages',
+              onPressed: () {
+                setState(() {
+                  _isSearching = true;
+                });
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.call, color: AppTheme.accent),
+              tooltip: 'Voice Call',
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        CallPage(coupleId: widget.coupleId, isVideo: false),
                   ),
-                  content: const Text(
-                    'Are you sure you want to clear your chat history?',
-                    style: TextStyle(color: AppTheme.textSecondary),
+                );
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.videocam, color: AppTheme.accent),
+              tooltip: 'Video Call',
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        CallPage(coupleId: widget.coupleId, isVideo: true),
                   ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text(
-                        'Cancel',
-                        style: TextStyle(color: AppTheme.accent),
-                      ),
+                );
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_sweep, color: AppTheme.accent),
+              tooltip: 'Clear Chat',
+              onPressed: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    backgroundColor: AppTheme.cardDark,
+                    title: const Text(
+                      'Clear Chat',
+                      style: TextStyle(color: AppTheme.textPrimary),
                     ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text(
-                        'Clear',
-                        style: TextStyle(color: Colors.redAccent),
-                      ),
+                    content: const Text(
+                      'Are you sure you want to clear your chat history?',
+                      style: TextStyle(color: AppTheme.textSecondary),
                     ),
-                  ],
-                ),
-              );
-              if (confirm == true) {
-                await _firestoreService.clearChat(widget.coupleId, _myUid);
-              }
-            },
-          ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text(
+                          'Cancel',
+                          style: TextStyle(color: AppTheme.accent),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: const Text(
+                          'Clear',
+                          style: TextStyle(color: Colors.redAccent),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirm == true) {
+                  await _firestoreService.clearChat(widget.coupleId, _myUid);
+                }
+              },
+            ),
+          ]
         ],
         flexibleSpace: Container(
           decoration: const BoxDecoration(gradient: AppTheme.cardGradient),
@@ -612,6 +758,8 @@ class _ChatPageState extends State<ChatPage> {
                     });
 
                     final messages = snapshot.data ?? [];
+                    _currentMessages = messages; // Save ref for search
+
                     if (messages.isEmpty) {
                       return Center(
                         child: Column(
