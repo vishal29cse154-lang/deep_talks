@@ -9,8 +9,8 @@ class PushNotificationSender {
   ];
 
   static Future<String?> _getAccessToken() async {
-    if (ServiceAccountCredentials.credentials.isEmpty ||
-        !ServiceAccountCredentials.credentials.containsKey('project_id')) {
+    if (ServiceAccountConfig.credentials.isEmpty ||
+        !ServiceAccountConfig.credentials.containsKey('project_id')) {
       print(
           '⚠️ PushNotificationSender Error: service_account.dart is empty or invalid.');
       return null;
@@ -18,7 +18,7 @@ class PushNotificationSender {
 
     try {
       final accountCredentials = ServiceAccountCredentials.fromJson(
-        ServiceAccountCredentials.credentials,
+        ServiceAccountConfig.credentials,
       );
 
       final client = await clientViaServiceAccount(accountCredentials, _scopes);
@@ -39,7 +39,7 @@ class PushNotificationSender {
     required String type,
     String? coupleId,
   }) async {
-    final projectId = ServiceAccountCredentials.credentials['project_id'];
+    final projectId = ServiceAccountConfig.credentials['project_id'];
     if (projectId == null) {
       print('Cannot send push: project_id not found in service_account.dart');
       return;

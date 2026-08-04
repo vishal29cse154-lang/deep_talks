@@ -1,11 +1,11 @@
-class ServiceAccountCredentials {
+class ServiceAccountConfig {
   static const Map<String, dynamic> credentials = {
     // ⚠️ IMPORTANT:
     // 1. Go to Firebase Console > Project Settings > Service Accounts
     // 2. Click "Generate new private key"
     // 3. Open the downloaded JSON file and paste the entire contents between these brackets.
     // Make sure the keys (e.g. "type", "project_id", etc.) are wrapped in double quotes as valid Dart maps.
-    
+
     // Example:
     // "type": "service_account",
     // "project_id": "together-space-d6htbb",
