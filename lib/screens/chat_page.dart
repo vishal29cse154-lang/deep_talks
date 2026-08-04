@@ -357,7 +357,21 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void _showDeleteMenu(MessageModel msg) {
-    final emojis = ['❤️', '🔥', '😆', '😮', '😢', '👍'];
+    final emojis = [
+      '❤️',
+      '🔥',
+      '😆',
+      '😮',
+      '😢',
+      '👍',
+      '💋',
+      '💦',
+      '😈',
+      '👀',
+      '💯',
+      '✨',
+      '💔'
+    ];
 
     showModalBottomSheet(
       context: context,
@@ -371,28 +385,34 @@ class _ChatPageState extends State<ChatPage> {
           children: [
             // Reactions Bar
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: emojis.map((emoji) {
-                  final isSelected = msg.reactions?[_myUid] == emoji;
-                  return GestureDetector(
-                    onTap: () async {
-                      Navigator.pop(ctx);
-                      await _firestoreService.toggleMessageReaction(
-                          widget.coupleId, msg.messageId, _myUid, emoji);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: isSelected
-                          ? BoxDecoration(
-                              color: AppTheme.accent.withValues(alpha: 0.2),
-                              shape: BoxShape.circle)
-                          : null,
-                      child: Text(emoji, style: const TextStyle(fontSize: 28)),
-                    ),
-                  );
-                }).toList(),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: emojis.map((emoji) {
+                    final isSelected = msg.reactions?[_myUid] == emoji;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6.0),
+                      child: GestureDetector(
+                        onTap: () async {
+                          Navigator.pop(ctx);
+                          await _firestoreService.toggleMessageReaction(
+                              widget.coupleId, msg.messageId, _myUid, emoji);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: isSelected
+                              ? BoxDecoration(
+                                  color: AppTheme.accent.withValues(alpha: 0.2),
+                                  shape: BoxShape.circle)
+                              : null,
+                          child:
+                              Text(emoji, style: const TextStyle(fontSize: 28)),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
               ),
             ),
             Divider(color: AppTheme.dividerColor.withValues(alpha: 0.5)),
